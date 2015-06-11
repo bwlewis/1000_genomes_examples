@@ -23,14 +23,14 @@ that article, McSherry and his coauthors show that careful thinking about some
 network analysis problems let them run better on a laptop than on a 128 CPU
 core cluster using a few common "big data" computing frameworks.
 
-We present a few simple but useful examples using the 1000 genomes data in the
-spirit of Isard, McSherry and Murray. Our examples are often used to showcase
-big data analysis frameworks. We show how they can sometimes be easily and
-efficiently solved on a decent laptop.
+This note presents a few simple but useful examples using the 1000 genomes data
+in the spirit of Isard, McSherry and Murray. The examples are often used to
+showcase big data analysis frameworks. This note shows how they can sometimes
+be easily and efficiently solved on a decent laptop.
 
 ## Variant data
 
-Our examples use "variant call format" (VCF) files following an NCBI-specific
+The examples use "variant call format" (VCF) files following an NCBI-specific
 format available from links shown in the code snippets below. Loosely,
 "variants" are places on the genome that vary from a reference genome in a
 cataloged way. Variants include single-nucleotide polymorphisms (a.k.a. SNPs,
@@ -64,7 +64,8 @@ Columns 10-15 show that none of the first 6 people in the database
 have this variant on either strand of DNA `0|0`. Someone with the G to A variant
 on the 2nd strand of DNA will display `0|1`, for example.
 
-The http://bioconductor.org project provides VCF parsers for R. But the simple
+Numerous full-featured VCF file parsers exist for R, see for example 
+the http://bioconductor.org project. But the simple
 analyses considered in this project don't need to read VCF files in full
 generality, and we can also benefit from the knowledge that the 1000 genomes
 project follows a somewhat restricted VCF subset. I wrote the really simple
@@ -108,18 +109,61 @@ genomes data. It's popular perhaps because it's very effective at clustering
 the people by ethnicity, but otherwise I'm not sure how interesting it really
 is!
 
-We'll use principal components analysis to project all of the variant data
-for one entire chromosome into a three-dimensional subspace, and then plot
-our result.
+The example uses principal components analysis to project all of the variant
+data for one chromosome into a three-dimensional subspace, and then plot
+the result.
 
-For efficiency, we'll use our simple C parsing program to read the variant
-data, then use the irlba package for R (development version at
-https://github.com/bwlewis/IRL) to
-efficiently compute principal components, and then the threejs
-package for R to visualize the result.
+The example uses:
+- my simple C parsing program to read variant data into an R sparse matrix,
+- the irlba package (development version at https://github.com/bwlewis/IRL) to efficiently compute principal components,
+- the threejs package to visualize the result.
 
 All of these steps, from reading the data in to visualization, only take a few
 minutes on a decent laptop, expressed in just a few lines of R code.
 
+### Reading variant data into an R sparse matrix
 
+This step assumes that you've downloaded and compiled my simple VCF parser and
+downloaded at least the chromosome 20 and phenotype data files from the 1000
+genomes project, for example (from a Mac or Linux shell):
+```
+# 1000 genomes example variant data file (chromosome 20)
+wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz
 
+# 1000 genomes phenotype data file
+wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_info/20130606_g1k.ped
+
+# My simple but fast parser program
+wget https://github.com/bwlewis/1000_genomes_examples/blob/master/parse.c  ## XXX
+cc parse.c
+```
+Note that we _could_ use R alone to read and parse the VCF file, it would just
+take a little longer.
+
+All the remaining steps in this document run from R. Let's read the variant
+data for chromosome 20 into an R sparse matrix. Note that we only care about
+the variant number and sample (person) number in this exercise and ignore
+everything else.
+```{r}
+library(Matrix)
+p = pipe("cat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  | zcat | sed /^#/d  | cut  -f '10-' | ./a.out | cut -f '1-2'")
+x = read.table(p, colClasses=c("integer","integer"), fill=TRUE, row.names=NULL)
+
+# Convert to a sparse matrix of people (rows) x variant (columns)
+chr20 = sparseMatrix(i=x[,2],j=x[,1],x=1.0)
+
+# Inspect the dimensions of this matrix
+(dim(chr20))
+[1]    2504 4597105 XXX
+```
+That was pretty easy. The next step computes the first three principal
+component vectors with the irlba package and plots them with a cool 3d
+scatterplot. It's pretty easy too!
+```{r}
+library(irlba)
+cm = colMeans(chr20)
+p = irlba(chr20, nv=3, nu=3, tol=0.1, dU=rep(1,nrow(chr8)), ds=1, dV=cm)
+
+library(threejs)
+scatterplot3js(p$u)
+```
