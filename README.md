@@ -16,7 +16,7 @@ my personal opinion is that folks get too worked up over "big data" solutions
 and sometimes too focused on distributed system implementation details (Spark,
 etc.) when simple tools like R work just fine.
 
-I am very impressed by a recent paper by Michael Isard, Frank McSherry and
+I am very impressed by a recent article by Michael Isard, Frank McSherry and
 Derek Murray (summarized 
 http://www.frankmcsherry.org/graph/scalability/cost/2015/01/15/COST.html).  In
 that article, McSherry and his coauthors show that careful thinking about some
@@ -24,7 +24,7 @@ network analysis problems let them run better on a laptop than on a 128 CPU
 core cluster using a few common "big data" computing frameworks.
 
 We present a few simple but useful examples with the 1000 genomes data in the
-spirit of Isard, McSheery and Murray. Although our examples are often used to
+spirit of Isard, McSherry and Murray. Although our examples are often used to
 showcase big data analysis frameworks, we show how they can sometimes be easily
 and efficiently solved on a decent laptop.
 
