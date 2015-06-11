@@ -4,7 +4,7 @@
  * This parser requires a filter to cut out comments and info fields.
  * Example use:
  * cc -O2 parse.c
- * cat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  | zcat | sed /^#/d  | cut  -f "10-" | ./a.out 
+ * zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  | sed /^#/d  | cut  -f "10-" | ./a.out 
  *
  * NOTE!! This program ignores phasing and assumes specific 1000 genomes vcf format.
  */
