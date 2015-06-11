@@ -10,7 +10,7 @@ interest in understanding human genetics, these data are often used as examples
 of "big data" analysis. A typical example of this kind of thing can be found
 in the Google genomics project https://github.com/googlegenomics.
 
-## That's cool and all, but
+## That's cool and all, but...
 
 my personal opinion is that folks get too worked up over "big data" solutions
 and sometimes too focused on distributed system implementation details (Spark,
