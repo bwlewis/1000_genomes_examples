@@ -25,7 +25,7 @@ core cluster using a few common "big data" computing frameworks.
 
 We present a few simple but useful examples using the 1000 genomes data in the
 spirit of Isard, McSherry and Murray. Our examples are often used to showcase
-big data analysis frameworks, we show how they can sometimes be easily and
+big data analysis frameworks. We show how they can sometimes be easily and
 efficiently solved on a decent laptop.
 
 ## Variant data
@@ -55,7 +55,7 @@ columns and 10-15 columns) looks like:
 ```
 zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz | sed /^#/d | cut -f "1-5,10-15" | head -n 1
 
-20      60343   .       G       A       0|0     0|0     0|0     0|0     0|0     0|0
+20      60343   .       G       A   ...    0|0     0|0     0|0     0|0     0|0     0|0
 ```
 This variant is on chromosome 20 at position 60343. The reference nucleotide is G and
 the variant is A. Note that in some cases, more than one possibility may be listed
@@ -67,10 +67,11 @@ on the 2nd strand of DNA will display `0|1`, for example.
 The http://bioconductor.org project provides VCF parsers for R. But the simple
 analyses considered in this project don't need to read VCF files in full
 generality, and we can also benefit from the knowledge that the 1000 genomes
-project follows a somewhat restricted VCF subset. I wrote the really
-simple 32-line C parser program https://github.com/bwlewis/1000_genomes_examples/parse.c
-to take advantage of these observations and
-load a subset of VCF data from the 1000 genomes project into R pretty quickly.
+project follows a somewhat restricted VCF subset. I wrote the really simple
+32-line C parser program
+https://github.com/bwlewis/1000_genomes_examples/blob/master/parse.c to take
+advantage of these observations and load a subset of VCF data from the 1000
+genomes project into R pretty quickly.
 
 The simple parser program turns VCF files into comma-separated output with four
 or three columns: variant number (just the line offset in file), sample number
@@ -102,9 +103,23 @@ and are easy to directly read into R.
 
 ## Principal components analysis
 
-This is an example that is very basic but often used to illustrate analysis of
-1000 genomes data. It's popular perhaps because it's so effective at clustering
-the people by their ethnicity.
+This example is very basic but often used to illustrate analysis of 1000
+genomes data. It's popular perhaps because it's very effective at clustering
+the people by ethnicity, but otherwise I'm not sure how interesting it really
+is!
+
+We'll use principal components analysis to project all of the variant data
+for one entire chromosome into a three-dimensional subspace, and then plot
+our result.
+
+For efficiency, we'll use our simple C parsing program to read the variant
+data, then use the irlba package for R (development version at
+https://github.com/bwlewis/IRL) to
+efficiently compute principal components, and then the threejs
+package for R to visualize the result.
+
+All of these steps, from reading the data in to visualization, only take a few
+minutes on a decent laptop, expressed in just a few lines of R code.
 
 
 
