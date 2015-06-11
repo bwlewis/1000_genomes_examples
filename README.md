@@ -23,10 +23,10 @@ that article, McSherry and his coauthors show that careful thinking about some
 network analysis problems let them run better on a laptop than on a 128 CPU
 core cluster using a few common "big data" computing frameworks.
 
-We present a few simple but useful examples with the 1000 genomes data in the
-spirit of Isard, McSherry and Murray. Although our examples are often used to
-showcase big data analysis frameworks, we show how they can sometimes be easily
-and efficiently solved on a decent laptop.
+We present a few simple but useful examples using the 1000 genomes data in the
+spirit of Isard, McSherry and Murray. Our examples are often used to showcase
+big data analysis frameworks, we show how they can sometimes be easily and
+efficiently solved on a decent laptop.
 
 ## Variant data
 
