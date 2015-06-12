@@ -133,9 +133,9 @@ wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr20.pha
 # 1000 genomes phenotype data file
 wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_info/20130606_g1k.ped
 
-# My simple but fast parser program
-wget https://github.com/bwlewis/1000_genomes_examples/blob/master/parse.c  ## XXX
-cc parse.c
+# My simple but fast parser program (after compilation you'll have a program called a.out)
+wget https://raw.githubusercontent.com/bwlewis/1000_genomes_examples/master/parse.c
+cc -O2 parse.c
 ```
 Note that we _could_ use R alone to read and parse the VCF file, it would just
 take a little longer.
@@ -146,24 +146,26 @@ the variant number and sample (person) number in this exercise and ignore
 everything else.
 ```{r}
 library(Matrix)
-p = pipe("cat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  | zcat | sed /^#/d  | cut  -f '10-' | ./a.out | cut -f '1-2'")
+p = pipe("zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  | sed /^#/d  | cut  -f '10-' | ./a.out | cut -f '1-2'")
 x = read.table(p, colClasses=c("integer","integer"), fill=TRUE, row.names=NULL)
 
 # Convert to a sparse matrix of people (rows) x variant (columns)
-chr20 = sparseMatrix(i=x[,2],j=x[,1],x=1.0)
+chr20 = sparseMatrix(i=x[,2], j=x[,1], x=1.0)
 
 # Inspect the dimensions of this matrix
-(dim(chr20))
-[1]    2504 4597105 XXX
+print(dim(chr20))
+# [1]    2504 1812841
 ```
-That was pretty easy. The next step computes the first three principal
+That was pretty easy!  We've loaded a sparse matrix with 2504 rows (people) by
+1,812,841 columns (variants).  The next step computes the first three principal
 component vectors with the irlba package and plots them with a cool 3d
 scatterplot. It's pretty easy too!
 ```{r}
 library(irlba)
 cm = colMeans(chr20)
-p = irlba(chr20, nv=3, nu=3, tol=0.1, dU=rep(1,nrow(chr8)), ds=1, dV=cm)
+p = irlba(chr20, nv=3, nu=3, tol=0.1, dU=rep(1,nrow(chr20)), ds=1, dV=cm)
 
 library(threejs)
 scatterplot3js(p$u)
 ```
+Not bad. We see that there are three obvious groups.
