@@ -168,4 +168,4 @@ p = irlba(chr20, nv=3, nu=3, tol=0.1, dU=rep(1,nrow(chr20)), ds=1, dV=cm)
 library(threejs)
 scatterplot3js(p$u)
 ```
-Not bad. We see that there are three obvious groups.
+Not bad. We see that there are obvious groups. It turns out these groups correspond to ethnicities, and we actually have that information available from the 1000 genomes project.
