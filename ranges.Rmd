@@ -29,8 +29,8 @@ overlap joins may be performed on tables with millions of ranges.
 
 This note compares the performance of R with the community edition of
 Vertica[^3] for a representative genomic data example on modest computer
-hardware. R faster and better-suited to solving problems like the one described
-here.
+hardware. R is generally faster and better-suited to solving problems like the one described
+here than other systems.
 
 [^3]: http://my.vertica.com
 
