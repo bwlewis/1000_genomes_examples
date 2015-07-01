@@ -4,7 +4,7 @@ Finding overlapping regions between two sets of coordinate values is
 a common problem in computational genomics and other problems. At least
 two R packages can very rapidly perform this computation: the IRanges
 package by Pages, Aboyoun and Lawrence in the bioconductor[^1].
-and recent and widely popular data.table package by Dowle, Short, Lianoglou, Srinivasan, and others[^2].
+and the recent and widely popular data.table package by Dowle, Short, Lianoglou, Srinivasan, and others[^2].
 
 [^1]: Gentleman R.C., Carey V.J., Bates D.M., Bolstad B., Dettling M., Dudoit S., Ellis B., Gautier L., Ge Y., Gentry J., Hornik K., Hothorn T., Huber W., Iacus S., Irizarry R., Leisch F., Li C., Maechler M., Rossini A.J., Sawitzki  ., Smith C., Smyth G., Tierney L., Yang J.Y. and Zhang J. (2004) Bioconductor: open software development for computational biology and bioinformatics. Genome Biol. 5(10): R80.
 
