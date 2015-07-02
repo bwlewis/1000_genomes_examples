@@ -47,7 +47,7 @@ https://www.pharmgkb.org/ [^5]. The example proceeds as follows:
 [^5]: M. Whirl-Carrillo, E.M. McDonagh, J. M. Hebert, L. Gong, K. Sangkuhl, C.F. Thorn, R.B. Altman and T.E. Klein. "Pharmacogenomics Knowledge for Personalized Medicine" Clinical Pharmacology & Therapeutics (2012) 92(4): 414-417.
 
 1. Find variant and gene overlaps
-2. Count the number of variants that overlap each gene by gene sybol
+2. Count the number of variants that overlap each gene by gene symbol
 3. Order the genes by number of variant overlaps and display the top 50
 
 The R packages include functions that combine steps 1 and 2 into a single step,
