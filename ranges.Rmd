@@ -380,4 +380,4 @@ which took a few seconds to compute, but the query performance was unchanged.
 The overlapping ranges produced by the `findOverlaps` and `foverlaps` functions
 agree. Although the top 10 results displayed above agree for the Vertica
 query, 65 of the 1,987 ranges had different counts. I'm still looking in to
-what the cause of this difference is.
+possible causes of this discrepancy.
