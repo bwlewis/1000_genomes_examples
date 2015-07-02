@@ -1,10 +1,10 @@
 # 1000 Genomes Overlap Join Example
 
 Finding overlapping regions between two sets of coordinate values is
-a common problem in computational genomics and other problems. At least
-two R packages can very rapidly perform this computation: the IRanges
+a common problem in computational genomics and other application areas.
+At least two R packages can very rapidly perform this computation: the IRanges
 package by Pages, Aboyoun and Lawrence in the bioconductor[^1].
-and the recent and widely popular data.table package by Dowle, Short, Lianoglou, Srinivasan, and others[^2].
+and the widely popular data.table package by Dowle, Short, Lianoglou, Srinivasan, and others[^2].
 
 [^1]: Gentleman R.C., Carey V.J., Bates D.M., Bolstad B., Dettling M., Dudoit S., Ellis B., Gautier L., Ge Y., Gentry J., Hornik K., Hothorn T., Huber W., Iacus S., Irizarry R., Leisch F., Li C., Maechler M., Rossini A.J., Sawitzki  ., Smith C., Smyth G., Tierney L., Yang J.Y. and Zhang J. (2004) Bioconductor: open software development for computational biology and bioinformatics. Genome Biol. 5(10): R80.
 
@@ -146,23 +146,25 @@ This step takes about 260 seconds on my test PC (to parse and save
 
 The parsing program is complicated by the doubly-delimited data file format. In
 particular more than one alternate allele may be listed per line separated by
-commas (the remainder of the file is tab separated). However, R handles the
+commas (the remainder of the file is tab separated). R handles the
 extra format complexity with relative ease and efficiency. Parsing multiple
 alternate alleles adds only about 12 lines to the R program and runs very fast.
 I think that languages like R should be used most of the time partly because of
 this superb flexibility and ease of handling more complicated work flows.
 
 We use some shell utilities here to help uncompress and process the TSV files.
-R''s `pipe` connection object makes it easy to operate on pipelines of shell
+R's `pipe` connection object makes it easy to operate on pipelines of shell
 commands conveniently from R.  (The data.table package includes similar
-functionality but, unfortunately, with a different syntax). Note the trick of
-ordering the first data.frame column, which leads to a dramatic file I/O
-performance increase in this example.
+functionality but, somewhat unfortunately, with a different syntax).
+Note the trick of
+ordering the first data.frame column, which interestingly
+leads to a significant
+performance increase in file I/O for this example.
 
 Because the above processing pipeline includes several stages (zcat, sed, cut,
 read.table), there is already a fair amount of parallel computation going on.
 The script additionally uses the explicitly parallel `mclapply` function which
-may lead to over committing of some CPU resources, but can still improve
+may lead to some over-committing of CPU resources, but still generally improves
 performance.
 
 Note that the script omits imprecisely specified variants, further described
@@ -171,7 +173,9 @@ complexity to this simple example.
 
 The genes.tsv file is so small and fast to parse by comparison that I simply
 parse it directly from the TSV file into a data.frame named "genes" (which
-takes only seconds) and don't bother to save it:
+takes only seconds) and don't bother to save it. The following script loads
+the 1,989 listed gene ranges corresponding to 
+chromosomes 7 and 8 into a data.frame.
 ```{r, eval=FALSE}
 cmd = "cat genes.tsv | cut -f 5,12- | grep 'chr[7,8]' | sed /-0000/d | sed -e 's/chr7/7/;s/chr8/8/'"
 p = pipe( cmd, open="r")
@@ -186,7 +190,7 @@ data.frame.
 
 ### R data.table
 
-The populate R data.table package includes a fast overlap join function
+The popular R data.table package includes a fast overlap join function
 called `foverlaps`. You can install the data.table package from CRAN with:
 ```{r, eval=FALSE}
 install.packages("data.table")
