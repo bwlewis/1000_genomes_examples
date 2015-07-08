@@ -68,7 +68,7 @@ scatterplot3js(p$u)
 ```
 ```{r,eval=TRUE,echo=FALSE,}
 library(threejs)
-load("https://raw.githubusercontent.com/bwlewis/1000_genomes_examples/master/chr20_pca.RData")
+load(url("http://illposed.net/chr20_svd.RData"))
 scatterplot3js(p$u, size=0.5)
 ```
 The data exhibit obvious groups, and those groups correspond to ethnicities.
