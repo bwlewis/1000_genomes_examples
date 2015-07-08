@@ -103,7 +103,7 @@ zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  
 3,463,1,0
 ```
 The output says that person 898 has variant number 1 (the first listed) for
-chromosome 20 present on the 2nd strand of DNA. ANd person 1454 has variant
+chromosome 20 present on the 2nd strand of DNA. And person 1454 has variant
 number 2 present on the 2nd strand of DNA, and so on.
 
 For our purposes in the following examples, this simple C parser quickly
@@ -115,3 +115,13 @@ about each of the more than 2500 people whose genomes are represented.
 Those data are available from:
 ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_info/20130606_g1k.ped
 and are easy to directly read into R.
+
+## Next steps
+
+See the following vignettes for copy-and-pasteable example analyses on variant data that you can run yourself.
+
+### Genomic ranges example
+http://bwlewis.github.io/1000_genomes_examples/ranges.html
+
+### PCA example
+http://bwlewis.github.io/1000_genomes_examples/PCA.html
