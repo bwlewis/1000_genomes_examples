@@ -104,11 +104,9 @@ f = function(file)
 {
   t2 = proc.time()
   cmd = sprintf("zcat %s | sed '/^#/d;/IMPRECISE/d' |  cut -f 2,4,5",file)
-  out = sprintf("%s.RData",file)
-  p = pipe( cmd, open="r")
   name = gsub(".phase.*","",file)
   print(name)
-  x = read.table(p, stringsAsFactors=FALSE)
+  x = read.table(pipe(cmd), stringsAsFactors=FALSE)
   names(x) = c("start","ref","alt")
 
   # Process extra comma-separated alleles (would be much easier if these were
@@ -130,7 +128,6 @@ f = function(file)
   x = x[order(x$start),]
 
   save(x, file=sprintf("%s.RData",name))
-  close(p)
   return(proc.time()-t2)
 }
 
