@@ -1,10 +1,13 @@
 # 1000 Genomes PCA Example
 
-I think the following example is popular perhaps because it's very effective at clustering the people by ethnicity. For some reason it's often used to illustrate "big data" analysis in genomics, even though the data are not particularly big. The point of this example is not to say that PCA on genomic variants is profound, but rather that it's _easy_.
+This example walks through the computation of principal components (PCA) of genomic
+variant data of 2,504 people from the 1000 genomes project[^1].
+The example projects all of the variant
+data for one chromosome into a three-dimensional subspace, and then plots
+the result. I think the example is popular perhaps because it's very effective at clustering people by ethnicity. It's often used to illustrate "big data" analysis in genomics, even though the data are not particularly big. The point of this example is not to say that PCA on genomic variants is profound, but rather that it's _easy_.
 
-The example uses principal components analysis to project all of the variant
-data for one chromosome into a three-dimensional subspace, and then plot
-the result.
+[^1]: http://www.1000genomes.org/
+
 
 The example uses:
 
@@ -13,7 +16,7 @@ The example uses:
 - the threejs package to visualize the result.
 
 All of these steps, from reading the data in to visualization, only take a few
-minutes on a decent laptop, expressed in just a few lines of R code.
+minutes on a decent laptop, and are expressed in just a few lines of R code.
 
 ## Reading variant data into an R sparse matrix
 
@@ -31,10 +34,10 @@ wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_
 wget https://raw.githubusercontent.com/bwlewis/1000_genomes_examples/master/parse.c
 cc -O2 parse.c
 ```
-Note that we _could_ use R alone to read and parse the VCF file, it would just
+We _could_ use R alone to read and parse the VCF file, it would just
 take a while longer.
 
-All the remaining steps in this document run from R. Let's read the variant
+All the remaining steps in this example run from R. Let's read the variant
 data for chromosome 20 into an R sparse matrix. Note that we only care about
 the variant number and sample (person) number in this exercise and ignore
 everything else.
@@ -50,10 +53,11 @@ chr20 = sparseMatrix(i=x[,2], j=x[,1], x=1.0)
 print(dim(chr20))
 # [1]    2504 1812841
 ```
-That was pretty easy!  We've loaded a sparse matrix with 2504 rows (people) by
+That was pretty easy!  We've loaded a sparse matrix with 2,504 rows (people) by
 1,812,841 columns (variants).  The next step computes the first three principal
-component vectors with the irlba package and plots them with a cool 3d
-scatterplot. It should run in under a minute even on very modest computers.
+component vectors using the irlba package and plots a 3d
+scatterplot using the threejs package.
+It should run in under a minute even on very modest computers.
 ```{r,eval=FALSE}
 library(irlba)
 cm = colMeans(chr20)
@@ -64,9 +68,38 @@ scatterplot3js(p$u)
 ```
 ```{r,eval=TRUE,echo=FALSE,}
 library(threejs)
-load("chr20_svd.RData")
-scatterplot3js(p$u)
+load("https://raw.githubusercontent.com/bwlewis/1000_genomes_examples/master/chr20_pca.RData")
+scatterplot3js(p$u, size=0.5)
 ```
-We can see three obvious groups. The groups correspond to ethnicities and that can be illustrated by loading ancillary data from the 1000 genomes project that identifies the "superpopulation" of each sample.
+The data exhibit obvious groups, and those groups correspond to ethnicities.
+That can be illustrated by loading ancillary data from the 1000 genomes project that identifies the "superpopulation" of each sample.
 
-XXX Write me XXX
+```{r}
+# Read just the header of the chromosome file to obtain the sample identifiers
+ids = readLines(pipe("zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz  | sed -n /^#CHROM/p | tr '\t' '\n' | tail -n +10"))
+
+# Download and parse the superpopulation data for each sample, order by ids
+ped = read.table(url("ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_info/20130606_g1k.ped"),sep="\t",header=TRUE,row.names=2)[ids,6,drop=FALSE]
+
+# Download the subpopulation and superpopulation codes
+pop = read.table("ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/20131219.populations.tsv",sep="\t",header=TRUE)
+super = pop[,3]
+names(super) = pop[,2]
+
+# Map sample sub-populations to super-populations
+ped$Superpopulation = super[as.character(ped$Population)]
+
+# Plot with colors corresponding to super populations
+N = length(levels(super))
+scatterplot3js(p$u, col=rainbow(N)[ped$Superpopulation], size=0.5)
+```
+<center>
+<font color="blue"><b>EUR</b></font>
+<font color="#eeee00;"><b>AFR</b></font>
+<font color="#00ff99;"><b>AMR</b></font>
+<font color="cyan"><b>EAS</b></font>
+<font color="magenta"><b>SAS</b></font>
+</center>
+<hr/>
+
+
