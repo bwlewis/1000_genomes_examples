@@ -47,7 +47,7 @@ be easily and efficiently solved on a decent laptop.
 
 The examples use "variant call format" (VCF) files following an NCBI-specific
 format available from links shown in the code snippets below. Loosely,
-"variants" are places on the genome that vary from a reference genome in a
+"variants" are places on the genome that commonly vary from a reference genome in a
 cataloged way. Variants include single-nucleotide polymorphisms (a.k.a. SNPs,
 basically a single base change along the genome) and larger "structural"
 alterations. The 1000 genomes project catalogs about 81 million variants.
@@ -64,7 +64,7 @@ ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/.
 Discounting the header lines, a variant line in the data files consists of some
 information columns about the variant followed by one column for each sample
 (person) that indicates if they exhibit the variant on either or both
-chromosomes. For example, part of a typical line (showing only the first 5
+DNA strands. For example, part of a typical line (showing only the first 5
 columns and 10-15 columns) looks like:
 
 ```
