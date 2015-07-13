@@ -63,7 +63,7 @@ img {
 
 <div id="genomes-overlap-join-example" class="section level1">
 <h1>1000 Genomes Overlap Join Example</h1>
-<p>Finding overlapping regions between two sets of coordinate values is a common problem in computational genomics and other application areas. At least two R packages can very rapidly perform this computation: the IRanges package by Pages, Aboyoun and Lawrence in the bioconductor<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a>. and the widely popular data.table package by Dowle, Short, Lianoglou, Srinivasan, and others<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
+<p>Finding overlapping regions between two sets of coordinate values is a common problem in computational genomics and other disciplines. At least two R packages can very rapidly perform this computation: the IRanges package by Pages, Aboyoun and Lawrence in the bioconductor<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> and the widely popular data.table package by Dowle, Short, Lianoglou, Srinivasan, and others<a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>.</p>
 <div id="the-overlap-join" class="section level2">
 <h2>The Overlap Join</h2>
 <p>The <em>overlap join</em> finds overlapping regions between two tables of coordinates. The following figure, adapted from Alex Poliakov at Paradigm4, illustrates a simple example. The right to left extent of the blue and green boxes depicts two sets of ranges, respectively.</p>
@@ -228,7 +228,7 @@ print(proc.time()-t1)</code></pre>
 <pre class="r"><code>head(ans, n=10)
 #  CSMD1 CNTNAP2    SGCZ    SDK1   MAGI2  PTPRN2   CSMD3    NRG1   AUTS2   SNTG1 
 # 148202   76416   52725   45673   44388   42186   34721   33353   31673   29758 </code></pre>
-<p>The IRanges example runs in about 8 seconds on my test PC. Just the overlap join portion runs in about 0.8 to 1 seconds per chromosome, slightly faster than the <code>foverlaps</code> function available in the data.table package.</p>
+<p>The IRanges example runs in about 8 seconds on my test PC. Just the overlap join portion runs in about 0.8 to 1 seconds per chromosome, about twice as fast as the <code>foverlaps</code> function available in the data.table package.</p>
 </div>
 <div id="vertica" class="section level3">
 <h3>Vertica</h3>
