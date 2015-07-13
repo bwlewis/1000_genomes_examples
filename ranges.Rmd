@@ -1,9 +1,9 @@
 # 1000 Genomes Overlap Join Example
 
 Finding overlapping regions between two sets of coordinate values is
-a common problem in computational genomics and other application areas.
+a common problem in computational genomics and other disciplines.
 At least two R packages can very rapidly perform this computation: the IRanges
-package by Pages, Aboyoun and Lawrence in the bioconductor[^1].
+package by Pages, Aboyoun and Lawrence in the bioconductor[^1]
 and the widely popular data.table package by Dowle, Short, Lianoglou, Srinivasan, and others[^2].
 
 [^1]: Gentleman R.C., Carey V.J., Bates D.M., Bolstad B., Dettling M., Dudoit S., Ellis B., Gautier L., Ge Y., Gentry J., Hornik K., Hothorn T., Huber W., Iacus S., Irizarry R., Leisch F., Li C., Maechler M., Rossini A.J., Sawitzki  ., Smith C., Smyth G., Tierney L., Yang J.Y. and Zhang J. (2004) Bioconductor: open software development for computational biology and bioinformatics. Genome Biol. 5(10): R80.
@@ -289,8 +289,8 @@ head(ans, n=10)
 # 148202   76416   52725   45673   44388   42186   34721   33353   31673   29758 
 ```
 The IRanges example runs in about 8 seconds on my test PC. Just the overlap
-join portion runs in about 0.8 to 1 seconds per chromosome,
-slightly faster than the `foverlaps` function available in the data.table package.
+join portion runs in about 0.8 to 1 seconds per chromosome, about twice as fast
+as the `foverlaps` function available in the data.table package.
 
 ### Vertica
 
@@ -298,11 +298,11 @@ We use a few shell commands to decompress the data files and pick out columns
 5,12,13 from the genes file (gene symbol, start and end), and filter it to
 include only genes on chromosome 7 and 8.
 
-I couldn't figure out an easy way to
-process the doubly-delimited variant data format either within Vertica or from
-shell scripts, so I use R to parse the variant data (see above) and save it to
-a tab separated file that Vertica can read. The lack of easy data munging
-capability is a serious drawback in my opinion of most database systems.
+I couldn't figure out an easy way to process the doubly-delimited variant data
+format either within Vertica or from shell scripts, so I use R to parse the
+variant data (see above) and save it to a tab separated file that Vertica can
+read. The lack of easy data munging capability is a serious drawback in my
+opinion of most database systems.
 ```
 cat genes.tsv | cut -f 5,12- | grep 'chr[7,8]' | sed /-0000/d | sed -e 's/chr7/7/;s/chr8/8/' > genes_parsed.tsv
 R --slave -e "load('ALL.chr7.RData');x[,'chromosome']=7;write.table(x,file='variants.tsv',col.names=FALSE, row.names=FALSE); load('ALL.chr8.RData');x[,'chromosome']=8;write.table(x,file='variants.tsv',col.names=FALSE, row.names=FALSE,append=TRUE);"
