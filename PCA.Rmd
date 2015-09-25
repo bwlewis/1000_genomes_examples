@@ -1,10 +1,13 @@
 # 1000 Genomes PCA Example
 
-This example walks through the computation of principal components (PCA) of genomic
-variant data of 2,504 people from the 1000 genomes project[^1].
-The example projects all of the variant
-data for one chromosome into a three-dimensional subspace, and then plots
-the result. I think the example is popular perhaps because it's very effective at clustering people by ethnicity. It's often used to illustrate "big data" analysis in genomics, even though the data are not particularly big. The point of this example is not to say that PCA on genomic variants is profound, but rather that it's _easy_.
+This example walks through the computation of principal components (PCA) of
+genomic variant data of 2,504 people from the 1000 genomes project[^1].  The
+example projects all of the variant data for one chromosome into a
+three-dimensional subspace, and then plots the result. I think the example is
+popular perhaps because it's very effective at clustering people by ethnicity.
+It's often used to illustrate "big data" analysis in genomics, even though the
+data are not particularly big. The point of this example is not to say that PCA
+on genomic variants is profound, but rather that it's _easy_.
 
 [^1]: http://www.1000genomes.org/
 
@@ -13,10 +16,16 @@ The example uses:
 
 - a very simple C parsing program to efficiently read variant data into an R sparse matrix,
 - the irlba package (development version at https://github.com/bwlewis/IRL) to efficiently compute principal components,
+_NOTE!_ The development version if `irlba` is required for this example for now. Please install it with the `devtools` package:
+```
+devtools::install_github("bwlewis/irlba")
+```
 - the threejs package to visualize the result.
 
 All of these steps, from reading the data in to visualization, only take a few
 minutes on a decent laptop, and are expressed in just a few lines of R code.
+
+I'd like thank Dr. David McWilliams for finding bugs and improving these notes.
 
 ## Reading variant data into an R sparse matrix
 
@@ -25,7 +34,7 @@ downloaded at least the chromosome 20 and phenotype data files from the 1000
 genomes project, for example (from a Mac or Linux shell):
 ```
 # 1000 genomes example variant data file (chromosome 20)
-wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz
+wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr20.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
 
 # 1000 genomes phenotype data file
 wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_info/20130606_g1k.ped
@@ -82,9 +91,13 @@ ids = readLines(pipe("zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5a.2013
 ped = read.table(url("ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_info/20130606_g1k.ped"),sep="\t",header=TRUE,row.names=2)[ids,6,drop=FALSE]
 
 # Download the subpopulation and superpopulation codes
-pop = read.table("ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/20131219.populations.tsv",sep="\t",header=TRUE)
+# WARNING: These links occasionally change. Beware!
+pop = read.table("ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/phase3/20131219.populations.tsv",sep="\t",header=TRUE)
+pop = pop[1:26,]
 super = pop[,3]
 names(super) = pop[,2]
+super = factor(super)
+# The last rows of pop are summary data or non-relevant:
 
 # Map sample sub-populations to super-populations
 ped$Superpopulation = super[as.character(ped$Population)]
