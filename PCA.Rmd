@@ -107,13 +107,3 @@ ped$Superpopulation = super[as.character(ped$Population)]
 N = length(levels(super))
 scatterplot3js(p$u, col=rainbow(N)[ped$Superpopulation], size=0.5)
 ```
-<center>
-<font color="blue"><b>EUR</b></font>
-<font color="#eeee00;"><b>AFR</b></font>
-<font color="#00ff99;"><b>AMR</b></font>
-<font color="cyan"><b>EAS</b></font>
-<font color="magenta"><b>SAS</b></font>
-</center>
-<hr/>
-
-
