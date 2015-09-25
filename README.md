@@ -22,8 +22,9 @@ published on the web.
 
 Because of the size and complexity of the data, and because of the significant
 interest in understanding human genetics, these data are often used as examples
-of "big data" analysis. A typical example of this kind of thing can be found
-in the Google genomics project https://github.com/googlegenomics.
+of "big data" analysis. Typical examples of this kind of thing can be found
+in the Google genomics project https://github.com/googlegenomics and the Spark
+ADAM project https://github.com/bigdatagenomics/adam.
 
 ## That's cool and all, but...
 
