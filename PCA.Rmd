@@ -16,7 +16,8 @@ The example uses:
 
 - a very simple C parsing program to efficiently read variant data into an R sparse matrix,
 - the irlba package (development version at https://github.com/bwlewis/IRL) to efficiently compute principal components,
-_NOTE!_ The development version if `irlba` is required for this example for now. Please install it with the `devtools` package:
+_NOTE!_ The development version if `irlba` is required for this example for now.
+I expect that the CRAN version will be updated in October, 2015. Please install it with the `devtools` package:
 ```
 devtools::install_github("bwlewis/irlba")
 ```
@@ -25,7 +26,7 @@ devtools::install_github("bwlewis/irlba")
 All of these steps, from reading the data in to visualization, only take a few
 minutes on a decent laptop, and are expressed in just a few lines of R code.
 
-I'd like thank Dr. David McWilliams for finding bugs and improving these notes.
+I'd like to thank Dr. David McWilliams for finding bugs and improving these notes.
 
 ## Reading variant data into an R sparse matrix
 
