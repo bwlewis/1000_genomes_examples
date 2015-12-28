@@ -90,7 +90,7 @@ https://github.com/bwlewis/1000_genomes_examples/blob/master/parse.c to take
 advantage of these observations and load a subset of VCF data from the 1000
 genomes project into R pretty quickly.
 
-The simple parser program turns VCF files into comma-separated output with four
+The simple parser program turns VCF files into tab-separated output with four
 or three columns: variant number (just the line offset in file), sample number
 (person), alternate number on first strand or haploid alternate, optional
 alternate number on 2nd strand (diploid). For example chromosome 20 again:
@@ -98,10 +98,10 @@ alternate number on 2nd strand (diploid). For example chromosome 20 again:
 cc parse.c
 zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  | sed /^#/d  | cut  -f "10-" | ./a.out | head
 
-1,898,0,1
-2,1454,0,1
-3,462,0,1
-3,463,1,0
+1       898     0       1
+2       1454    0       1
+3       462     0       1
+3       463     1       0
 ```
 The output says that person 898 has variant number 1 (the first listed) for
 chromosome 20 present on the 2nd strand of DNA. And person 1454 has variant
