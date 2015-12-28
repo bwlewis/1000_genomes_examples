@@ -93,6 +93,21 @@ test:
 1464.736  178.208  822.954
 ```
 
+Unfortunately (for exm), using _both_ SSD + swap and exm does not improve
+performance of this step:
+```
+# SSD + swap + exm experiment
+    user   system  elapsed
+1874.688  334.588 4115.032
+```
+While running this experiment we observed exm allocations similarly to
+the exm-only test and no swap at all was used. Thus exm intercepted all
+allocations and performed identically as it did without swap enabled.
+
+Further study is required to understand why exm performs poorly with
+this workload and what, if anything, can be done to bring its performance
+more in-line with SSD + swap.
+
 ## Assembling a large matrix
 
 Each chromosome results in a sparse matrix with 2,504 rows (the number
