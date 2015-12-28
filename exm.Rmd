@@ -57,7 +57,7 @@ wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr12.pha
 ```
 
 Then parse files into R sparse matrices, using the ancillary C parsing program
-available from https://github.com/bwlewis/1000\_genomes\_examples
+available from https://github.com/bwlewis/1000_genomes_examples
 
 ```r
 library(Matrix)
