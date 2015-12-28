@@ -1,0 +1,154 @@
+# Some tests with swap on SSD versus exm
+
+The steps below computes principal components of variant data across three
+chromosomes of the human genome for about 12 million variants across 2,504
+samples from the 1000 Genomes Project. The data matrix is sufficiently large to
+exceed the RAM of the test computer. We compare two approaches for out of core
+computing with R:
+
+1. assigning fast solid state flash storage to swap, and
+2. exm (https://github.com/bwlewis/flexmem) on solid state flash
+
+Neither approach requires any changes to R.
+
+The results are inconclusive! SSD + swap worked much faster for
+parsing and loading the raw data files, but SSD + exm works better
+for the PCA analysis.
+
+
+## Test system configuration
+
+* CPU: Single AMD A10-7850K APU 3.7 GHz (four physical CPU cores)
+* RAM: 16 GB Non-ECC Synchronous Unbuffered RAM 1,600 MHz
+* SSD: PCI Express OCZ-REVODRIVE3 X2, 960 GB
+* OS: Ubuntu 15.10 (Linux kernel 4.2.0-16)
+* R version 3.2.3 (2015-12-10)
+* OpenBLAS library version 0.2.14-1ubuntu1 (based on Goto's BLAS version 1.13), OMP\_NUM\_THREADS=4
+
+All data file I/O was performed on the fast SSD (mounted at `/mnt` on the
+system). The SSD + swap tests used a swap file configured as:
+
+```
+dd if=/dev/zero of=/mnt/swap bs=2G count=64     # (128 GB swap file)
+mkswap /mnt/swap
+sudo swapon /mnt/swap
+```
+
+The SSD + exm tests were performed without any swap by preceeding their run with
+```
+sudo swapoff -a
+exm R
+library(exm)
+exm_set_path("/mnt")
+```
+Other than setting the exm path the the SSD, default exm settings were used; in particular
+we used the default minimum allocation size of 2 GB.
+
+
+## Data prep
+
+Downlaod variant data from the 1000 Genomes project for chromosomes 10, 11, and
+12.
+
+```
+wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr10.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
+wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr11.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
+wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr12.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
+```
+
+Then parse files into R sparse matrices, using the ancillary C parsing program
+available from https://github.com/bwlewis/1000_genomes_examples
+
+```r
+library(Matrix)
+
+t1 = proc.time()
+f = "ALL.chr10.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+p = pipe(sprintf("zcat %s | sed /^#/d  | cut  -f '10-' | ./a.out | cut -f '1-2'", f))
+x = read.table(p, colClasses=c("integer","integer"), fill=TRUE, row.names=NULL)
+
+# Convert to a sparse matrix of people (rows) x variant (columns)
+chr10 = sparseMatrix(i=x[,2], j=x[,1], x=1.0)
+save(chr10, file="chr10.RData")
+print(proc.time() - t1)
+
+# Now repeat for chr11 and chr12 files...
+```
+
+Timing results for the above parsing workflow are shown below for just the
+chromosome 10 file. SSD + swap is about 5 times faster than SSD + exm in this
+test:
+
+```
+SSD + exm R
+    user   system  elapsed
+1886.576  324.876 4102.132
+
+SSD + swap
+   user   system  elapsed
+1464.736  178.208  822.954
+```
+
+## Assembling a large matrix
+
+Each chromosome results in a sparse matrix with 2,504 rows (the number
+of 1000 Genomes subjects) and a variable number of columns depending on
+the number of variants.
+
+We used R `cbind` to assemble a large sparse matrix with 2,504 rows
+and 11,906,275 columns. The matrix requires  19,636,563,360 bytes,
+exceeding the available 16 GB system RAM:
+
+```r
+t1 = proc.time()
+x  = cbind(chr10, chr11, chr12)
+print(proc.time()-t1)
+
+dim(x)
+#[1]     2504 11906275
+
+object.size(x)
+# 19636563360 bytes
+``` 
+
+Timing results for SSD + swap and SSD + exm are:
+
+```r
+# SSD + swap
+   user  system elapsed
+ 37.568 240.764 925.997
+
+# SSD + exm
+   user  system elapsed
+ 33.708  86.492 235.994
+```
+
+SSD + exm is about 4x faster than SSD + swap in this matrix assembly test.
+
+
+## Principal components
+
+We computed the first five principal components for the matrix from the
+last step with R's `irlba` package.
+
+```r
+library(irlba)
+t1 = proc.time()
+s  = irlba(x, nv=5, center=colMeans(x))
+print(proc.time()-t1)
+```
+
+Timings for SSD + swap and SSD + exm are:
+
+```r
+# SSD + swap
+    user   system  elapsed 
+ 607.012 1588.300 7283.236 
+
+# SSD + exm
+    user   system  elapsed
+ 450.980  334.784 1904.031
+```
+
+Similarly to the matrix assembly setp, SSD + exm is about 4x faster than SSD +
+swap.
