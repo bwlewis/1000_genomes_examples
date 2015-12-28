@@ -57,7 +57,7 @@ wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr12.pha
 ```
 
 Then parse files into R sparse matrices, using the ancillary C parsing program
-available from https://github.com/bwlewis/1000_genomes_examples
+available from https://github.com/bwlewis/1000\_genomes\_examples
 
 ```r
 library(Matrix)
@@ -79,12 +79,16 @@ Timing results for the above parsing workflow are shown below for just the
 chromosome 10 file. SSD + swap is about 5 times faster than SSD + exm in this
 test:
 
-```
-SSD + exm R
+```r
+# SSD + exm R
     user   system  elapsed
 1886.576  324.876 4102.132
 
-SSD + swap
+# SSD + exm R (2nd run)
+    user   system  elapsed
+1684.316 1218.836 3891.651
+
+# SSD + swap
    user   system  elapsed
 1464.736  178.208  822.954
 ```
