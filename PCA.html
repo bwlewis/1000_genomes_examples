@@ -106,7 +106,7 @@ print(dim(chr20))
 <p>That was pretty easy! We’ve loaded a sparse matrix with 2,504 rows (people) by 1,812,841 columns (variants). The next step computes the first three principal component vectors using the irlba package and plots a 3d scatterplot using the threejs package. It should run in under a minute even on very modest computers.</p>
 <pre class="r"><code>library(irlba)
 cm = colMeans(chr20)
-p = irlba(chr20, nv=3, nu=3, tol=0.1, dU=rep(1,nrow(chr20)), ds=1, dV=cm)
+p = irlba(chr20, nv=3, nu=3, tol=0.1, center=cm)
 
 library(threejs)
 scatterplot3js(p$u)</code></pre>
