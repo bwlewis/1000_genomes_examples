@@ -124,5 +124,8 @@ See the following vignettes for copy-and-pasteable example analyses on variant d
 ### Genomic ranges example
 http://bwlewis.github.io/1000_genomes_examples/ranges.html
 
-### PCA example
-http://bwlewis.github.io/1000_genomes_examples/PCA.html
+### PCA examples
+
+Across the whole genome: http://bwlewis.github.io/1000_genomes_examples/PCA_whole_genome_example.html
+
+Smaller example across just one chromosome: http://bwlewis.github.io/1000_genomes_examples/PCA.html
