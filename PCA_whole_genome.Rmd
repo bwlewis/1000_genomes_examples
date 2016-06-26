@@ -1,0 +1,388 @@
+# 1000 Genomes Whole Genome PCA Example
+
+This example illustrates principal components (PCA) decomposition of genomic
+variant data of 2,504 people from the 1000 genomes project[^1].  The example
+projects genome-wide variant data into a three dimensional subspace.
+
+Specifically, arrange the variant data into a sparse matrix $A$ whose 2,504 rows
+represent people and columns variants. A one in row i, column j of the matrix
+means that variant j occured in person i. The matrix is otherwise filled with
+zeros. Details on parsing the raw variant data appear below. Let $\hat{A}$
+represent the centered matrix after subtracting the column mean from each
+column. Then this example computes the singular value decomposition (SVD):
+
+$$
+\hat{A} V = U \Sigma,
+$$
+
+where $U$ is a 2,504 by 3 principal component matrix with orthonormal columns,
+$\Sigma$ is a diagonal 3 by 3 matrix of singular values, and $V$ is a matrix
+with three orthonormal columns and as many rows as $A$ has columns. We're not
+that interested in the $V$ matrix in this example, and because it can be big
+($A$ has a lot of columns), we avoid computing it explicitly when possible.
+
+Examples like this are often used to illustrate "big data" analysis in
+genomics, even though the data are not particularly big. The point of this
+example is not to say that PCA on genomic variants is profound, but rather that
+it's relatively  _easy_.
+
+[^1]: http://www.1000genomes.org/
+
+The example uses:
+
+- a very simple C parsing program to efficiently read variant data into an R sparse matrix,
+- the R irlba package[^2] to efficiently compute principal components
+
+[^2]: Jim Baglama and Lothar Reichel (2015). irlba: Fast Truncated SVD, PCA and Symmetric Eigendecomposition for Large Dense and Sparse Matrices.  R package version 2.0.1. Development version at https://github.com/bwlewis/irlba.
+
+
+I'd like to thank Dr. David McWilliams for finding bugs and improving these notes.
+
+
+## Partitioning the work
+
+I want scalable solution approaches; that is, solutions that work reasonably
+well on small computers and also on big ones or even clusters of computers. I
+primarily worked on solving this problem on my quad-core home PC, equipped with
+only 16 GB RAM. The raw data size of the problem is approximately 112 GB, which
+means that I needed to break the problem up into pieces small enough to fit in
+the limite 16 GB memory of my computer.
+
+Solving the problem by breaking it up into manageble pieces has the advantage
+of promoting scalability. Those pieces can be run on other CPU cores or even
+networked computers relatively easily.
+
+
+## The cross product method
+
+The variant data are represented as a very sparse matrix of 2,504 rows (people)
+by 182,291,162 columns (genomic variants), but with only about 9.8 billion
+nonzero-elements, that is only a little over 2% fill-in.  In other words not
+every person exhibits all variants. It's hard to make good use of available CPU
+floating point resources with sparse data because a lot of time is spent simply
+addressing and wrangling the data into CPU registers.  Breaking the problem up
+explicitly into smaller pieces as described in the next section might help CPU
+utilization through explicit use of coarse-grained parallelism on the pieces.
+
+Let's formalize some notation for future reference.
+
+- Let $A\in R^{m\times n}$ be the 2,504 by 182,291,162 variant data matrix.
+- Let $z$ be the 182,291,162 element vector of column means of $A$.
+- Let $e$ represent a vector of ones of length determined by the context.
+- Let $\hat{A} = A - ez^T$ be the centered matrix.
+
+The fact that the data matrix is very "fat" with many many more columns than
+rows has some interesting consequences. For example, one naive approach to
+computing all the columns of the $U$ matrix is to compute a symmetric
+eigenvalue decomposition of the relatively small 2,504 by 2,504
+matrix $\hat{A} \hat{A}^T = U \Sigma^2 U^T$
+(the exponent indicates element-wise exponentiation). This approach
+has at least two potential issues, but they are relatively easy to deal with.
+
+First, the matrix $\hat{A}$ is dense and large (over 456 billion elements),
+which means we can't explicitly form it. However, we can implicitly compute the
+matrix product $\hat{A} \hat{A}^T$ without ever forming $\hat{A}$ as follows:
+
+1. Let $z=$column means$(A)$ be a 182,291,162 element vector.
+2. Let $e = (1,1, \ldots, 1)$ be a 2,504 element vector of all ones.
+3. Let $B = (Az)e^T$ be their 2,504 by 2,504 product.
+4. Then
+$$
+\hat{A} \hat{A}^T = A A^T - B - B^T + (z^T z) e e^T
+$$
+
+We can then compute the symmetric eigenvalue decomposition of the small
+$\hat{A}\hat{A}^T$ matrix after step 4 to obtain the desired $U$ matrix.  The
+computation in step 4 avoids explicitly forming a huge dense centered matrix.
+The biggest part of the work in step 4 is the computation of $A A^T$, a problem
+that on the whole could require a large amount of memory to compute.  But this
+matrix product is very easy to break up into smaller chunks.  Because the data
+are so sparse, the product $A A^T$ only requires about 2 trillion floating
+point operations (Tflops) of computation for this example.  Importantly, this
+approach only requires a single pass through the data.
+
+A second issue is that the matrix cross product $\hat{A} ^T \hat{A}$ is much
+worse conditioned than $\hat{A}$, and we would expect its eigenvalue
+decomposition numerical accuracy to suffer as a result. However, since we are
+only interested in the three eigenvectors associated with the three largest
+eigenvalues of that matrix, the effect of poor conditioning will not be as
+pronounced as, say, for the eigenvectors corresponding to small eigenvalues.
+
+Note that if the matrix were to have many more rows so that $A A^T$ becomes
+large then the cross product method might not work out so well! In those cases,
+the IRLBA method described below might be the only good solution approach.
+
+
+## The IRLBA method
+
+The fat matrix leads to some interesting problems for IRLBA. Normally, a 3-d
+IRLBA PCA decomposition computes the decomposition $\hat{A} V = U \Sigma$ for
+rank 3 matrices $U$ and $V$, while never explicitly forming the centered matrix
+$\hat{A}$. The problem is that the output matrix $V$ can be very large in our
+example and require a large amount of working memory, even though we are not
+interested in that output! For instance, on my wimpy 16 GB home computer this
+straightforward approach runs out of RAM, even when the problem is broken up
+into pieces, simply because of storage required for the output.
+
+There is a little-used IRLBA option `right_only=TRUE` that can help in this
+case, but it requires some extra set up effort. When `right_only=TRUE` is
+specified, then IRLBA only returns $V$ and $\Sigma$, and also uses
+substantially less working memory during the computation. Note however, that we
+want the $U$ matrix, not the $V$ matrix, so this option isn't a perfect fit for
+this problem. A work around is to compute the SVD of $\hat{A}^T$ instead since
+$$
+\hat{A} V = U \Sigma \\
+\hat{A}^T U = V \Sigma,
+$$
+and then the `right_only=TRUE` option gives us the quantities we're interesed in.
+
+Unfortunately, this approach introduces one additional complexity, we can't
+simply use the `centered=TRUE` option to compute principal compontents of $A$.
+Instead we need to supply a custom matrix vector product that implicitly
+uses the centered matrix $\hat{A}$, similar to what we did with
+the cross product method above:
+
+- instead of $\hat{A} x$, compute $Ax - (z^T x)e$.
+
+In practice this added complication is not too burdensome since we need to
+write a custom matrix vector product anyway to process the data in pieces.
+
+Let p be the number of nonzero elements of $A$. Assuming that the IRLBA method
+takes about 40 matrix vector products to converge (a value I found in practice
+for this problem), then the IRLBA method requires about 40 * (p + n) = 400
+Gflops, or about one fifth of the total of the cross product method. However,
+40 iterations of IRLBA require 40 sweeps over the data, and if the data can't
+fit into main memory then this incurs additional I/O expense over the cross
+product method for this problem.
+
+
+# Data prep
+
+The section is common to both the IRLBA and cross product methods. We download
+the data, read it into R sparse matrices partitioned into submatrices with
+about 2e8 nonzero elements per submatrix, and serialize the sparse matrices to
+files. The particular data partition here is well-suited to systems with a RAM
+(in GB) to CPU core count ratio of 4.
+
+The code below stores the sparse data matrix partitions in transposed form, for
+more direct use with the IRLBA code below. Column sums (row sums of the
+transposed data matrix) are stored along with the data because they are
+required by both methods.
+
+The steps below use a command line shell or R and common Unix system utilities
+like zcat, sed and cut.
+
+
+## Download and compile the simple VCF parser
+
+```
+wget https://raw.githubusercontent.com/bwlewis/1000_genomes_examples/master/parse.c
+cc -O2 parse.c
+```
+We _could_ use R alone to read and parse the VCF file, it would just
+take a while longer.
+
+
+## Downloading and processing the data into R sparse matrices
+
+The script below shows a large parallel download, suitable for systems with
+lots of network bandwidth (like Amazon). Remove the ampersand at the end of the
+wget line for a sequential download instead.
+
+```{bash,eval=FALSE}
+# Download the variant files
+j=1
+while test $j -lt 23; do
+  wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr${j}.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz &
+  j=$(( $j + 1 ))
+done
+wait
+
+# Download 1000 genomes phenotype data file
+wget ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_info/20130606_g1k.ped
+```
+
+
+## Process and partition the downloaded files into R sparse matrices
+
+The remaining data prep steps run from R. The following R program splits
+process the variant files into R sparse matrix partitions with about
+`chunksize=2e8` nonzero elements per partition, resulting in many output files
+that each represent a portion of the whole genome variant matrix. **We store
+the output chunk matrices in transposed format** for convenience in the IRLBA
+method. Use of the transpose form does not affect the cross product product
+method.
+
+Note that we don't compress the serialized R objects stored in files
+corresponding to the matrix partitions. If you have a computer with slow I/O
+then compression makes a lot sense (whenever the decompression time is more
+than made up for by the reduced I/O). Note that, in that case, you might want
+to store the data in non-transposed form which in this example will achieve
+much higher compression, and then transpose the data as needed in RAM after its
+loaded.
+
+This takes a few hours to run on my quad-core home PC.  The pipelined
+parallelism in the code uses about two CPU cores reasonably well.  I engange
+the remaining two cores on my home PC using explicit parallelism and R's
+`mcMap()` function.  If you have more cores, increase the mc.cores value below.
+For instance on an Amazon r3.x8large machine with mc.cores=16 this takes about
+2,000 seconds.
+
+```{r,eval=FALSE}
+library(Matrix)
+library(parallel)
+t0 = proc.time()
+chunksize = 200000000
+meta = Reduce(rbind, mcMap(function(f)
+{
+  name = gsub("\\.gz", "", f); message(name)
+  chunk = 1
+  p = pipe(sprintf("zcat %s  | sed /^#/d | cut  -f '10-' | ./a.out | cut -f '1-2'", f), open="r")
+  meta = data.frame()
+  while(chunk > 0)
+  {
+    x = tryCatch(read.table(p, colClasses=c("integer", "integer"), fill=TRUE, row.names=NULL, nrows=chunksize),
+                 error=function(e) data.frame())
+    if(nrow(x) < 1) chunk = 0
+    else
+    {
+      x = sparseMatrix(i=x[,1], j=x[,2], x=1.0)
+      attr(x, "rowmeans") = rowMeans(x)
+      cfn = sprintf("%s-%d.rdata", name, chunk)
+      cf = file(cfn, open="wb")
+      serialize(x, connection=cf, xdr=FALSE)
+      close(cf)
+      meta = rbind(meta, data.frame(file=cfn, nrow=nrow(x), ncol=ncol(x), stringsAsFactors=FALSE))
+      chunk = chunk + 1
+    }
+    rm(x)
+    gc()
+  }
+  close(p)
+  meta
+}, dir(pattern="ALL.*\\.gz"), mc.cores=16))
+print(proc.time() - t0)
+
+meta$end = cumsum(meta$nrow)
+meta$start = c(1, meta$end[-length(meta$end)] + 1)
+saveRDS(meta, file="meta.rdata")
+```
+
+The "meta.rdata" file and the meta variable above stores the positions of each
+partition within the (vitual) full data matrix. That information is only
+required later by the IRLBA method, not the cross product method.
+
+
+# Cross product method implementation
+
+This is the simpler method to implement in R code, but as pointed out above I
+expect it to take longer. The code computes the cross matrix product of the
+implicitly centered data matrix $\hat{A}$ incrementally over the submatrices
+stored in the data prep step above. Once this (small) matrix is formed, we
+can simply compute its SVD to obtain the desired $U$ vectors.
+
+If you have more than 4 available CPU cores, adjust the mc.cores value
+appropriately.
+
+```{r,eval=FALSE}
+library(Matrix)
+library(parallel)
+
+files = dir(pattern="ALL.*\\.rdata")
+t1 = proc.time()
+cross = Reduce(`+`,
+  mcMap(function(i)
+  {
+    f = file(i, open="rb")
+    A = unserialize(f)
+    close(f)
+    e = rep(1, ncol(A))
+    B = tcrossprod((attr(A, "rowmeans") %*% A)@x, e)
+    as.matrix(t(A) %*% A) - B - t(B) + drop(crossprod(attr(A, "rowmeans"))) * tcrossprod(e)
+  }, files, mc.cores=4)
+)
+s = svd(cross)
+dt = proc.time() - t1
+```
+
+The cross product method takes about 6 hours to run on my home quad core PC.
+The same code with mc.cores=16 finishes in about XXX hours on an Amzon
+r3.8xlarge AMI.
+
+
+
+# IRLBA implementation
+
+The following example shows a reasonably efficient IRLBA implementation for
+this problem following the above notes on IRLBA. The gist is to work on the
+transpose problem in order to take advantage of the `right_only=TRUE` option to
+cut down on required working memory of the problem. The complication introduced
+by that approach is that we can't use the usual `centered=TRUE` option to
+compute PCA. Instead we need a custom matrix vector product that implicitly
+centers the (transposed) matrix.
+
+But we need a custom matrix vector product anyway to work with the data in
+chunks. The `irlba()` function has an argument for explicitly supplying a
+matrix vector product function, but the code below takes a different approach
+that I generally prefer these days. We define a simple lightweight partitioned
+matrix object called "pmat" below, and supply a few basic methods including
+matrix times vector, vector times matrix, dims, nrow, and ncol.
+
+The reason I like the lightweight partitioned matrix object approach is that it
+makes it easy to experiment with distributed matrix vector products
+interactively (say, for debugging) without having to run the `irlba()` function
+at all.
+
+
+```{r,eval=FALSE}
+library(irlba)
+library(Matrix)
+library(parallel)
+load("meta.rdata")
+
+setClass("pmat", contains="list", S3methods=TRUE, slots=c(dims="numeric"))
+setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y) 
+  {
+    Reduce(c, mcMap(function(i)
+    {
+      f = file(x$file[i], open="rb")
+      a = unserialize(f)
+      close(f)
+      r = attr(a, "rowmeans")
+      drop(a %*% y - r * drop(crossprod(rep(1, length(y)), y)))
+    }, 1:length(x$file), mc.cores=4))
+  })
+
+setMethod("%*%", signature(x="numeric", y="pmat"), function(x ,y) 
+  {
+    Reduce(`+`, mcMap(function(i)
+    {
+      f = file(y$file[i], open="rb")
+      a = unserialize(f)
+      close(f)
+      j = seq(from=y$start[i], to=y$end[i])
+      drop(x[j] %*% a - drop(crossprod(x[j], attr(a, "rowmeans"))))
+    }, 1:length(y$file), mc.cores=4))
+  })
+
+A = new("pmat", as.list(meta), dims=c(tail(meta$end, 1), meta$ncol[1]))
+dim.pmat = function(x) x@dims
+nrow.pmat = function(x) x@dims[1]
+ncol.pmat = function(x) x@dims[2]
+
+t1 = proc.time();
+L  = irlba(A, nv=3, tol=0.1, right_only=TRUE, verbose=TRUE)
+print(proc.time() - t1)
+```
+
+With a tolerance `tol=0.01`, this method required 39 matrix vector products and
+took about 3.5 hours on my quad core home PC, or only about 1.7 times faster
+than the cross product method despite using only about one fifth as many flops.
+As mentioned in the IRLBA notes above, the method requires fewer flops but
+greater I/O than the cross product method. This balance changes significantly
+for different sized problems. For example, IRLBA shoud have a larger
+performance advantage for bigger problems with more than 2,504 people.
+
+A low tolerance approximation is usually sufficient for the first few singular
+vectors of a huge matrix. For comparison, `tol=1e-6` required XXX matrix vector
+products and took XXX hours.

@@ -15,9 +15,7 @@ on genomic variants is profound, but rather that it's _easy_.
 The example uses:
 
 - a very simple C parsing program to efficiently read variant data into an R sparse matrix,
-- the irlba package (development version at https://github.com/bwlewis/IRL) to efficiently compute principal components,
-_NOTE!_ The development version if `irlba` is required for this example for now.
-I expect that the CRAN version will be updated in October, 2015. Please install it with the `devtools` package:
+- the irlba package to efficiently compute principal components,
 ```
 devtools::install_github("bwlewis/irlba")
 ```
