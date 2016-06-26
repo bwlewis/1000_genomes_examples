@@ -1,6 +1,7 @@
 /*
- * Parse a 1000 genomes vcf file into an output like:
- * variant_number\tsample_number\tref_number\talt_number
+ * Parse a 1000 genomes vcf file into an output like
+ * variant_number\tsample_number
+ * that is, it only shows whether or not a variant occured not what it is.
  * This parser requires a filter to cut out comments and info fields.
  * Example use:
  * cc -O2 parse.c
@@ -10,32 +11,24 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
-int main()
+#include <string.h>
+int main(int argc, char **argv)
 {
-  int k=0,t;
+  int k = 0, t;
+  char *entry;
   char *line = NULL;
-  size_t size, j, n;
+  size_t size, n;
   while((n = getline(&line, &size, stdin)) != -1)
   {
     k++;
-    n--;   // trailing delimiter
-    j=0;
-    t=1;
-    while(j<n)
+    t = 1;
+    entry = strtok(line, "\t");
+    while(entry != NULL)
     {
-      if((j+1)==n && line[j]!=48){printf("%d\t%d\t%c\n",k,t,line[j]); break;} // haploid at end of line
-      j++;
-      if(line[j]=='|' || line[j]=='\\') // note ignore phasing XXX
-      { // diploid
-        j++;
-        if(line[j-2]!=48 || line[j]!=48) printf("%d\t%d\t%c\t%c\n",k,t,line[j-2],line[j]);
-        j++;
-      } else // haploid
-      {
-        if(line[j-1]!=48) printf("%d\t%d\t%c\n",k,t,line[j-1]);
-      }
+      if(strncmp("0|0", entry, 3) !=0 )
+        printf("%d\t%d\n", k, t);
+      entry = strtok(NULL, "\t");
       t++;
-      j++;
     }
   }
   if(line) free(line);
