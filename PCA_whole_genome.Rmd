@@ -156,6 +156,23 @@ fit into main memory then this incurs additional I/O expense over the cross
 product method for this problem.
 
 
+# Test systems
+
+The following experiments were run on my home PC consisting of
+
+- CPU: Single AMD A10-7850K APU 3.7 GHz (four physical CPU cores)
+- RAM: 16 GB Non-ECC Synchronous Unbuffered RAM 1,600 MHz
+- SSD: PCI Express OCZ-REVODRIVE3 X2, 960 GB
+- OS: Ubuntu 15.10 (Linux kernel 4.2.0-16)
+- R version 3.2.3 (2015-12-10)
+- OpenBLAS library version 0.2.14-1ubuntu1 (based on Goto's BLAS version 1.13), `OMP_NUM_THREADS=1`
+
+I also run a few examples on an Amazon r3.8xlarge instance, see
+https://aws.amazon.com/about-aws/whats-new/2014/04/10/r3-announcing-the-next-generation-of-amazon-ec2-memory-optimized-instances/
+
+That  machine ran Ubuntu 14.10 and R version 3.3.1  with OpenBLAS and `OMP_NUM_THREADS=1`.
+
+
 # Data prep
 
 The section is common to both the IRLBA and cross product methods. We download
@@ -163,6 +180,10 @@ the data, read it into R sparse matrices partitioned into submatrices with
 about 2e8 nonzero elements per submatrix, and serialize the sparse matrices to
 files. The particular data partition here is well-suited to systems with a RAM
 (in GB) to CPU core count ratio of 4.
+
+
+**NOTE I'm still experimenting with the best partition sizes for my small RAM
+PC. I notice that I'm using swap in these tests, which is not good. Stay tuned.**
 
 The code below stores the sparse data matrix partitions in transposed form, for
 more direct use with the IRLBA code below. Column sums (row sums of the
