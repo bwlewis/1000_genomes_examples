@@ -189,7 +189,7 @@ $(document).ready(function () {
 <li>OpenBLAS library version 0.2.14-1ubuntu1 (based on Goto’s BLAS version 1.13), <code>OMP_NUM_THREADS=1</code></li>
 </ul>
 <p>I also run a few examples on an Amazon r3.8xlarge instance, see <a href="https://aws.amazon.com/about-aws/whats-new/2014/04/10/r3-announcing-the-next-generation-of-amazon-ec2-memory-optimized-instances/" class="uri">https://aws.amazon.com/about-aws/whats-new/2014/04/10/r3-announcing-the-next-generation-of-amazon-ec2-memory-optimized-instances/</a></p>
-<p>That machine ran Ubuntu 14.10 and R version 3.3.1 with OpenBLAS and <code>OMP_NUM_THREADS=1</code>.</p>
+<p>The r3.8xlarge machine ran Ubuntu 14.10 and R version 3.3.1 with OpenBLAS and <code>OMP_NUM_THREADS=1</code>.</p>
 </div>
 <div id="data-prep" class="section level1">
 <h1>Data prep</h1>
@@ -283,7 +283,7 @@ cross = Reduce(`+`,
 )
 s = svd(cross)
 dt = proc.time() - t1</code></pre>
-<p>The cross product method takes about 6 hours to run on my home quad core PC. The same code with mc.cores=16 finishes in about XXX hours on an Amzon r3.8xlarge AMI.</p>
+<p>The cross product method takes about 6 hours to run on my home quad core PC. The same code with mc.cores=16 finishes in about 69 minutes on the Amzon r3.8xlarge AMI test machine.</p>
 </div>
 <div id="irlba-implementation" class="section level1">
 <h1>IRLBA implementation</h1>
@@ -331,8 +331,9 @@ ncol.pmat = function(x) x@dims[2]
 t1 = proc.time()
 L  = irlba(A, nv=3, tol=1e-5, right_only=TRUE, verbose=TRUE, work=4)
 dt = proc.time() - t1</code></pre>
-<p>With the default tolerance <code>tol=1e-5</code>, this method required about 39 matrix vector products and took about 3.5 hours on my quad core home PC, or only about 1.7 times faster than the cross product method despite using only about one fifth as many flops. As mentioned in the IRLBA notes above, the method requires fewer flops but greater I/O than the cross product method. This balance changes significantly for different sized problems. For example, IRLBA shoud have a larger performance advantage for bigger problems with more than 2,504 people.</p>
-<p>The use of <code>gc()</code> just after each reduce is important for the multicore parallelism used by <code>mcMap()</code> to make sure that the process image is as small as possible in the next iteration. Otherwise each fork can bloat in memory size and eventually spill to swap, which can really slow things down.</p>
+<p>With the default tolerance <code>tol=1e-5</code> and <code>work=4</code>, this method required about 28 matrix vector products and took about 3.5 hours on my quad core home PC, or only about 1.7 times faster than the cross product method despite using only about one fifth as many flops. As mentioned in the IRLBA notes above, the method requires fewer flops but greater I/O than the cross product method. This balance changes significantly for different sized problems. For example, IRLBA shoud have a larger performance advantage for bigger problems with more than 2,504 people.</p>
+<p>The same problem finishes in about 19 minutes on the r3.8xlarge Amazon test sytstem, or nearly 4x faster on that machine. The better performance on the Amazon system is due to the large amount of RAM on that machine. The whole problem can fit in RAM and the data files remain in a fast buffer cache.</p>
+<p>The use of <code>gc()</code> just after each reduce is important for the multicore parallelism used by <code>mcMap()</code> to make sure that the process image is as small as possible in the next iteration on limited memory systems (like my home PC). Otherwise each fork can bloat in memory size and eventually spill to swap, which can really slow things down. I’m investigating using non-forked parallelism which might be faster in this case for that reason.</p>
 </div>
 <div class="footnotes">
 <hr />
