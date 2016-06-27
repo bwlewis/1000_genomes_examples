@@ -391,7 +391,8 @@ nrow.pmat = function(x) x@dims[1]
 ncol.pmat = function(x) x@dims[2]
 
 t1 = proc.time()
-L  = irlba(A, nv=3, tol=0.1, right_only=TRUE, verbose=TRUE)
+L  = irlba(A, nv=3, right_only=TRUE, verbose=TRUE)
+dt = proc.time() - t1
 ```
 
 With the default tolerance `tol=1e-5`, this method required about 39 matrix
