@@ -140,7 +140,7 @@ $(document).ready(function () {
 </div>
 <div id="the-cross-product-method" class="section level2">
 <h2>The cross product method</h2>
-<p>The variant data are represented as a very sparse matrix of 2,504 rows (people) by 198,784,895 columns (genomic variants), but with only about 9.8 billion nonzero-elements, that is only a little over 2% fill-in. In other words not every person exhibits all variants. It’s hard to make good use of available CPU floating point resources with sparse data because a lot of time is spent simply addressing and wrangling the data into CPU registers. Breaking the problem up explicitly into smaller pieces as described in the next section might help CPU utilization through explicit use of coarse-grained parallelism on the pieces.</p>
+<p>The variant data are represented as a very sparse matrix of 2,504 rows (people) by 198,784,895 columns (genomic variants), but with only about 9.8 billion nonzero-elements, that is only a little over 2% fill-in. <strong>Note that the data are updated periodically and your download may yield different counts!</strong> In other words not every person exhibits all variants. It’s hard to make good use of available CPU floating point resources with sparse data because a lot of time is spent simply addressing and wrangling the data into CPU registers. Breaking the problem up explicitly into smaller pieces as described in the next section might help CPU utilization through explicit use of coarse-grained parallelism on the pieces.</p>
 <p>Let’s formalize some notation for future reference.</p>
 <ul>
 <li>Let <span class="math inline">\(A\in R^{m\times n}\)</span> be the 2,504 by 198,784,895 variant data matrix.</li>
@@ -194,7 +194,6 @@ $(document).ready(function () {
 <div id="data-prep" class="section level1">
 <h1>Data prep</h1>
 <p>The section is common to both the IRLBA and cross product methods. We download the data, read it into R sparse matrices partitioned into submatrices with about 2e8 nonzero elements per submatrix, and serialize the sparse matrices to files. The particular data partition here is well-suited to systems with a RAM (in GB) to CPU core count ratio of 4.</p>
-<p><strong>NOTE I’m still experimenting with the best partition sizes for my small RAM PC. I notice that I’m using swap in these tests, which is not good. Stay tuned.</strong></p>
 <p>The code below stores the sparse data matrix partitions in transposed form, for more direct use with the IRLBA code below. Column sums (row sums of the transposed data matrix) are stored along with the data because they are required by both methods.</p>
 <p>The steps below use a command line shell or R and common Unix system utilities like zcat, sed and cut.</p>
 <div id="download-and-compile-the-simple-vcf-parser" class="section level2">
@@ -299,25 +298,29 @@ meta = readRDS(&quot;meta.rdata&quot;)
 setClass(&quot;pmat&quot;, contains=&quot;list&quot;, S3methods=TRUE, slots=c(dims=&quot;numeric&quot;))
 setMethod(&quot;%*%&quot;, signature(x=&quot;pmat&quot;, y=&quot;numeric&quot;), function(x ,y)
   {
-    Reduce(c, mcMap(function(i)
+    ans = Reduce(c, mcMap(function(i)
     { 
       f = file(x$file[i], open=&quot;rb&quot;)
       a = unserialize(f)
       close(f)
       r = attr(a, &quot;rowmeans&quot;) #rowMeans(a)
       drop(a %*% y - r * drop(crossprod(rep(1, length(y)), y)))
-    }, 1:length(x$file), mc.cores=16))
+    }, 1:length(x$file), mc.cores=4))
+    gc()
+    ans
   })
 setMethod(&quot;%*%&quot;, signature(x=&quot;numeric&quot;, y=&quot;pmat&quot;), function(x ,y)
   {
-    Reduce(`+`, mcMap(function(i)
+    ans = Reduce(`+`, mcMap(function(i)
     { 
-      f = file(x$file[i], open=&quot;rb&quot;)
+      f = file(y$file[i], open=&quot;rb&quot;)
       a = unserialize(f)
       close(f)
       j = seq(from=y$start[i], to=y$end[i])
       drop(x[j] %*% a - drop(crossprod(x[j], attr(a, &quot;rowmeans&quot;))))
-    }, 1:length(y$file), mc.cores=16))
+    }, 1:length(y$file), mc.cores=4))
+    gc()
+    ans
   })
 
 A = new(&quot;pmat&quot;, as.list(meta), dims=c(tail(meta$end, 1), meta$ncol[1]))
@@ -326,10 +329,10 @@ nrow.pmat = function(x) x@dims[1]
 ncol.pmat = function(x) x@dims[2]
 
 t1 = proc.time()
-L  = irlba(A, nv=3, right_only=TRUE, verbose=TRUE)
+L  = irlba(A, nv=3, tol=1e-5, right_only=TRUE, verbose=TRUE, work=4)
 dt = proc.time() - t1</code></pre>
 <p>With the default tolerance <code>tol=1e-5</code>, this method required about 39 matrix vector products and took about 3.5 hours on my quad core home PC, or only about 1.7 times faster than the cross product method despite using only about one fifth as many flops. As mentioned in the IRLBA notes above, the method requires fewer flops but greater I/O than the cross product method. This balance changes significantly for different sized problems. For example, IRLBA shoud have a larger performance advantage for bigger problems with more than 2,504 people.</p>
-<p>** NOTE I’m still working on this, I think I got the chunks too big…hitting swap. **</p>
+<p>The use of <code>gc()</code> just after each reduce is important for the multicore parallelism used by <code>mcMap()</code> to make sure that the process image is as small as possible in the next iteration. Otherwise each fork can bloat in memory size and eventually spill to swap, which can really slow things down.</p>
 </div>
 <div class="footnotes">
 <hr />
