@@ -57,12 +57,14 @@ networked computers relatively easily.
 
 The variant data are represented as a very sparse matrix of 2,504 rows (people)
 by 198,784,895 columns (genomic variants), but with only about 9.8 billion
-nonzero-elements, that is only a little over 2% fill-in.  In other words not
-every person exhibits all variants. It's hard to make good use of available CPU
-floating point resources with sparse data because a lot of time is spent simply
-addressing and wrangling the data into CPU registers.  Breaking the problem up
-explicitly into smaller pieces as described in the next section might help CPU
-utilization through explicit use of coarse-grained parallelism on the pieces.
+nonzero-elements, that is only a little over 2% fill-in. **Note that the data
+are updated periodically and your download may yield different counts!** In
+other words not every person exhibits all variants. It's hard to make good use
+of available CPU floating point resources with sparse data because a lot of
+time is spent simply addressing and wrangling the data into CPU registers.
+Breaking the problem up explicitly into smaller pieces as described in the next
+section might help CPU utilization through explicit use of coarse-grained
+parallelism on the pieces.
 
 Let's formalize some notation for future reference.
 
@@ -180,10 +182,6 @@ the data, read it into R sparse matrices partitioned into submatrices with
 about 2e8 nonzero elements per submatrix, and serialize the sparse matrices to
 files. The particular data partition here is well-suited to systems with a RAM
 (in GB) to CPU core count ratio of 4.
-
-
-**NOTE I'm still experimenting with the best partition sizes for my small RAM
-PC. I notice that I'm using swap in these tests, which is not good. Stay tuned.**
 
 The code below stores the sparse data matrix partitions in transposed form, for
 more direct use with the IRLBA code below. Column sums (row sums of the
@@ -364,25 +362,29 @@ meta = readRDS("meta.rdata")
 setClass("pmat", contains="list", S3methods=TRUE, slots=c(dims="numeric"))
 setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
   {
-    Reduce(c, mcMap(function(i)
+    ans = Reduce(c, mcMap(function(i)
     { 
       f = file(x$file[i], open="rb")
       a = unserialize(f)
       close(f)
       r = attr(a, "rowmeans") #rowMeans(a)
       drop(a %*% y - r * drop(crossprod(rep(1, length(y)), y)))
-    }, 1:length(x$file), mc.cores=16))
+    }, 1:length(x$file), mc.cores=4))
+    gc()
+    ans
   })
 setMethod("%*%", signature(x="numeric", y="pmat"), function(x ,y)
   {
-    Reduce(`+`, mcMap(function(i)
+    ans = Reduce(`+`, mcMap(function(i)
     { 
-      f = file(x$file[i], open="rb")
+      f = file(y$file[i], open="rb")
       a = unserialize(f)
       close(f)
       j = seq(from=y$start[i], to=y$end[i])
       drop(x[j] %*% a - drop(crossprod(x[j], attr(a, "rowmeans"))))
-    }, 1:length(y$file), mc.cores=16))
+    }, 1:length(y$file), mc.cores=4))
+    gc()
+    ans
   })
 
 A = new("pmat", as.list(meta), dims=c(tail(meta$end, 1), meta$ncol[1]))
@@ -391,7 +393,7 @@ nrow.pmat = function(x) x@dims[1]
 ncol.pmat = function(x) x@dims[2]
 
 t1 = proc.time()
-L  = irlba(A, nv=3, right_only=TRUE, verbose=TRUE)
+L  = irlba(A, nv=3, tol=1e-5, right_only=TRUE, verbose=TRUE, work=4)
 dt = proc.time() - t1
 ```
 
@@ -404,4 +406,7 @@ balance changes significantly for different sized problems. For example, IRLBA
 shoud have a larger performance advantage for bigger problems with more than
 2,504 people.
 
-** NOTE I'm still working on this, I think I got the chunks too big...hitting swap. **
+The use of `gc()` just after each reduce is important for the multicore
+parallelism used by `mcMap()` to make sure that the process image is as small
+as possible in the next iteration. Otherwise each fork can bloat in memory size
+and eventually spill to swap, which can really slow things down.
