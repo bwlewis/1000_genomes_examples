@@ -1,13 +1,14 @@
-# 1000 Genomes PCA Example
+# 1000 Genomes Single Chromosome PCA Example
 
 This example walks through the computation of principal components (PCA) of
-genomic variant data of 2,504 people from the 1000 genomes project[^1].  The
-example projects all of the variant data for one chromosome into a
-three-dimensional subspace, and then plots the result. I think the example is
-popular perhaps because it's very effective at clustering people by ethnicity.
-It's often used to illustrate "big data" analysis in genomics, even though the
-data are not particularly big. The point of this example is not to say that PCA
-on genomic variants is profound, but rather that it's _easy_.
+genomic variant data across one chromosome from 2,504 people from the 1000
+genomes project[^1].  The example projects all of the variant data for one
+chromosome into a three-dimensional subspace, and then plots the result. I
+think the example is popular perhaps because it's very effective at clustering
+people by ethnicity.  It's often used to illustrate "big data" analysis in
+genomics, even though the data are not particularly big. The point of this
+example is not to say that PCA on genomic variants is profound, but rather that
+it's _easy_.
 
 [^1]: http://www.1000genomes.org/
 
@@ -16,9 +17,6 @@ The example uses:
 
 - a very simple C parsing program to efficiently read variant data into an R sparse matrix,
 - the irlba package to efficiently compute principal components,
-```
-devtools::install_github("bwlewis/irlba")
-```
 - the threejs package to visualize the result.
 
 All of these steps, from reading the data in to visualization, only take a few
@@ -69,7 +67,7 @@ It should run in under a minute even on very modest computers.
 ```{r,eval=FALSE}
 library(irlba)
 cm = colMeans(chr20)
-p = irlba(chr20, nv=3, nu=3, tol=0.1, dU=rep(1,nrow(chr20)), ds=1, dV=cm)
+p = irlba(chr20, nv=3, nu=3, tol=0.1, center=cm)
 
 library(threejs)
 scatterplot3js(p$u)
