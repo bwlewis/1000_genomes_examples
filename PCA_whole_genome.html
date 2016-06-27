@@ -326,7 +326,8 @@ nrow.pmat = function(x) x@dims[1]
 ncol.pmat = function(x) x@dims[2]
 
 t1 = proc.time()
-L  = irlba(A, nv=3, tol=0.1, right_only=TRUE, verbose=TRUE)</code></pre>
+L  = irlba(A, nv=3, right_only=TRUE, verbose=TRUE)
+dt = proc.time() - t1</code></pre>
 <p>With the default tolerance <code>tol=1e-5</code>, this method required about 39 matrix vector products and took about 3.5 hours on my quad core home PC, or only about 1.7 times faster than the cross product method despite using only about one fifth as many flops. As mentioned in the IRLBA notes above, the method requires fewer flops but greater I/O than the cross product method. This balance changes significantly for different sized problems. For example, IRLBA shoud have a larger performance advantage for bigger problems with more than 2,504 people.</p>
 <p>** NOTE I’m still working on this, I think I got the chunks too big…hitting swap. **</p>
 </div>
