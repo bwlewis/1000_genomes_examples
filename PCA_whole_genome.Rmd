@@ -56,7 +56,7 @@ networked computers relatively easily.
 ## The cross product method
 
 The variant data are represented as a very sparse matrix of 2,504 rows (people)
-by 182,291,162 columns (genomic variants), but with only about 9.8 billion
+by 198,784,895 columns (genomic variants), but with only about 9.8 billion
 nonzero-elements, that is only a little over 2% fill-in.  In other words not
 every person exhibits all variants. It's hard to make good use of available CPU
 floating point resources with sparse data because a lot of time is spent simply
@@ -66,8 +66,8 @@ utilization through explicit use of coarse-grained parallelism on the pieces.
 
 Let's formalize some notation for future reference.
 
-- Let $A\in R^{m\times n}$ be the 2,504 by 182,291,162 variant data matrix.
-- Let $z$ be the 182,291,162 element vector of column means of $A$.
+- Let $A\in R^{m\times n}$ be the 2,504 by 198,784,895 variant data matrix.
+- Let $z$ be the 198,784,895 element vector of column means of $A$.
 - Let $e$ represent a vector of ones of length determined by the context.
 - Let $\hat{A} = A - ez^T$ be the centered matrix.
 
@@ -83,7 +83,7 @@ First, the matrix $\hat{A}$ is dense and large (over 456 billion elements),
 which means we can't explicitly form it. However, we can implicitly compute the
 matrix product $\hat{A} \hat{A}^T$ without ever forming $\hat{A}$ as follows:
 
-1. Let $z=$column means$(A)$ be a 182,291,162 element vector.
+1. Let $z=$column means$(A)$ be a 198,784,895 element vector.
 2. Let $e = (1,1, \ldots, 1)$ be a 2,504 element vector of all ones.
 3. Let $B = (Az)e^T$ be their 2,504 by 2,504 product.
 4. Then
@@ -359,31 +359,30 @@ at all.
 library(irlba)
 library(Matrix)
 library(parallel)
-load("meta.rdata")
+meta = readRDS("meta.rdata")
 
 setClass("pmat", contains="list", S3methods=TRUE, slots=c(dims="numeric"))
-setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y) 
+setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
   {
     Reduce(c, mcMap(function(i)
-    {
+    { 
       f = file(x$file[i], open="rb")
       a = unserialize(f)
       close(f)
-      r = attr(a, "rowmeans")
+      r = attr(a, "rowmeans") #rowMeans(a)
       drop(a %*% y - r * drop(crossprod(rep(1, length(y)), y)))
-    }, 1:length(x$file), mc.cores=4))
+    }, 1:length(x$file), mc.cores=16))
   })
-
-setMethod("%*%", signature(x="numeric", y="pmat"), function(x ,y) 
+setMethod("%*%", signature(x="numeric", y="pmat"), function(x ,y)
   {
     Reduce(`+`, mcMap(function(i)
-    {
-      f = file(y$file[i], open="rb")
+    { 
+      f = file(x$file[i], open="rb")
       a = unserialize(f)
       close(f)
       j = seq(from=y$start[i], to=y$end[i])
       drop(x[j] %*% a - drop(crossprod(x[j], attr(a, "rowmeans"))))
-    }, 1:length(y$file), mc.cores=4))
+    }, 1:length(y$file), mc.cores=16))
   })
 
 A = new("pmat", as.list(meta), dims=c(tail(meta$end, 1), meta$ncol[1]))
@@ -391,19 +390,17 @@ dim.pmat = function(x) x@dims
 nrow.pmat = function(x) x@dims[1]
 ncol.pmat = function(x) x@dims[2]
 
-t1 = proc.time();
+t1 = proc.time()
 L  = irlba(A, nv=3, tol=0.1, right_only=TRUE, verbose=TRUE)
-print(proc.time() - t1)
 ```
 
-With a tolerance `tol=0.01`, this method required 39 matrix vector products and
-took about 3.5 hours on my quad core home PC, or only about 1.7 times faster
-than the cross product method despite using only about one fifth as many flops.
-As mentioned in the IRLBA notes above, the method requires fewer flops but
-greater I/O than the cross product method. This balance changes significantly
-for different sized problems. For example, IRLBA shoud have a larger
-performance advantage for bigger problems with more than 2,504 people.
+With the default tolerance `tol=1e-5`, this method required about 39 matrix
+vector products and took about 3.5 hours on my quad core home PC, or only about
+1.7 times faster than the cross product method despite using only about one
+fifth as many flops.  As mentioned in the IRLBA notes above, the method
+requires fewer flops but greater I/O than the cross product method. This
+balance changes significantly for different sized problems. For example, IRLBA
+shoud have a larger performance advantage for bigger problems with more than
+2,504 people.
 
-A low tolerance approximation is usually sufficient for the first few singular
-vectors of a huge matrix. For comparison, `tol=1e-6` required XXX matrix vector
-products and took XXX hours.
+** NOTE I'm still working on this, I think I got the chunks too big...hitting swap. **
