@@ -177,9 +177,24 @@ $(document).ready(function () {
 <p>Let p be the number of nonzero elements of <span class="math inline">\(A\)</span>. Assuming that the IRLBA method takes about 40 matrix vector products to converge (a value I found in practice for this problem), then the IRLBA method requires about 40 * (p + n) = 400 Gflops, or about one fifth of the total of the cross product method. However, 40 iterations of IRLBA require 40 sweeps over the data, and if the data can’t fit into main memory then this incurs additional I/O expense over the cross product method for this problem.</p>
 </div>
 </div>
+<div id="test-systems" class="section level1">
+<h1>Test systems</h1>
+<p>The following experiments were run on my home PC consisting of</p>
+<ul>
+<li>CPU: Single AMD A10-7850K APU 3.7 GHz (four physical CPU cores)</li>
+<li>RAM: 16 GB Non-ECC Synchronous Unbuffered RAM 1,600 MHz</li>
+<li>SSD: PCI Express OCZ-REVODRIVE3 X2, 960 GB</li>
+<li>OS: Ubuntu 15.10 (Linux kernel 4.2.0-16)</li>
+<li>R version 3.2.3 (2015-12-10)</li>
+<li>OpenBLAS library version 0.2.14-1ubuntu1 (based on Goto’s BLAS version 1.13), <code>OMP_NUM_THREADS=1</code></li>
+</ul>
+<p>I also run a few examples on an Amazon r3.8xlarge instance, see <a href="https://aws.amazon.com/about-aws/whats-new/2014/04/10/r3-announcing-the-next-generation-of-amazon-ec2-memory-optimized-instances/" class="uri">https://aws.amazon.com/about-aws/whats-new/2014/04/10/r3-announcing-the-next-generation-of-amazon-ec2-memory-optimized-instances/</a></p>
+<p>That machine ran Ubuntu 14.10 and R version 3.3.1 with OpenBLAS and <code>OMP_NUM_THREADS=1</code>.</p>
+</div>
 <div id="data-prep" class="section level1">
 <h1>Data prep</h1>
 <p>The section is common to both the IRLBA and cross product methods. We download the data, read it into R sparse matrices partitioned into submatrices with about 2e8 nonzero elements per submatrix, and serialize the sparse matrices to files. The particular data partition here is well-suited to systems with a RAM (in GB) to CPU core count ratio of 4.</p>
+<p><strong>NOTE I’m still experimenting with the best partition sizes for my small RAM PC. I notice that I’m using swap in these tests, which is not good. Stay tuned.</strong></p>
 <p>The code below stores the sparse data matrix partitions in transposed form, for more direct use with the IRLBA code below. Column sums (row sums of the transposed data matrix) are stored along with the data because they are required by both methods.</p>
 <p>The steps below use a command line shell or R and common Unix system utilities like zcat, sed and cut.</p>
 <div id="download-and-compile-the-simple-vcf-parser" class="section level2">
