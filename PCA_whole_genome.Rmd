@@ -36,7 +36,9 @@ The example uses:
 [^2]: Jim Baglama and Lothar Reichel (2015). irlba: Fast Truncated SVD, PCA and Symmetric Eigendecomposition for Large Dense and Sparse Matrices.  R package version 2.0.1. Development version at https://github.com/bwlewis/irlba.
 
 
-I'd like to thank Dr. David McWilliams for finding bugs and improving these notes.
+We compare two approaches below, a method based on the eigenvalue decomposition
+$\hat{A} \hat{A}^T$, and a method using the IRLBA algorithm. Each method has
+benefits, drawbacks, and idiosyncracies described below.
 
 
 ## Partitioning the work
@@ -44,9 +46,9 @@ I'd like to thank Dr. David McWilliams for finding bugs and improving these note
 I want scalable solution approaches; that is, solutions that work reasonably
 well on small computers and also on big ones or even clusters of computers. I
 primarily worked on solving this problem on my quad-core home PC, equipped with
-only 16 GB RAM. The raw data size of the problem is approximately 112 GB, which
+16 GB RAM. The raw data size of the problem is approximately 123 GB, which
 means that I needed to break the problem up into pieces small enough to fit in
-the limite 16 GB memory of my computer.
+RAM.
 
 Solving the problem by breaking it up into manageble pieces has the advantage
 of promoting scalability. Those pieces can be run on other CPU cores or even
@@ -56,20 +58,18 @@ networked computers relatively easily.
 ## The cross product method
 
 The variant data are represented as a very sparse matrix of 2,504 rows (people)
-by 198,784,895 columns (genomic variants), but with only about 9.8 billion
-nonzero-elements, that is only a little over 2% fill-in. **Note that the data
-are updated periodically and your download may yield different counts!** In
-other words not every person exhibits all variants. It's hard to make good use
-of available CPU floating point resources with sparse data because a lot of
-time is spent simply addressing and wrangling the data into CPU registers.
-Breaking the problem up explicitly into smaller pieces as described in the next
-section might help CPU utilization through explicit use of coarse-grained
-parallelism on the pieces.
+by 81,271,844 columns (genomic variants), but with only about 9.8 billion
+nonzero-elements, that is only a little over 2% fill-in.  In other words not
+every person exhibits all variants. It's hard to make good use of available CPU
+floating point resources with sparse data because a lot of time is spent simply
+addressing and wrangling the data into CPU registers.  Breaking the problem up
+explicitly into smaller pieces as described in the next section might help CPU
+utilization through explicit use of coarse-grained parallelism on the pieces.
 
 Let's formalize some notation for future reference.
 
-- Let $A\in R^{m\times n}$ be the 2,504 by 198,784,895 variant data matrix.
-- Let $z$ be the 198,784,895 element vector of column means of $A$.
+- Let $A\in R^{m\times n}$ be the 2,504 by 81,271,844 variant data matrix.
+- Let $z$ be the 81,271,844 element vector of column means of $A$.
 - Let $e$ represent a vector of ones of length determined by the context.
 - Let $\hat{A} = A - ez^T$ be the centered matrix.
 
@@ -85,7 +85,7 @@ First, the matrix $\hat{A}$ is dense and large (over 456 billion elements),
 which means we can't explicitly form it. However, we can implicitly compute the
 matrix product $\hat{A} \hat{A}^T$ without ever forming $\hat{A}$ as follows:
 
-1. Let $z=$column means$(A)$ be a 198,784,895 element vector.
+1. Let $z=$column means$(A)$ be a 81,271,844 element vector.
 2. Let $e = (1,1, \ldots, 1)$ be a 2,504 element vector of all ones.
 3. Let $B = (Az)e^T$ be their 2,504 by 2,504 product.
 4. Then
@@ -99,9 +99,10 @@ computation in step 4 avoids explicitly forming a huge dense centered matrix.
 The biggest part of the work in step 4 is the computation of $A A^T$, a problem
 that on the whole could require a large amount of memory to compute.  But this
 matrix product is very easy to break up into smaller chunks.  Because the data
-are so sparse, the product $A A^T$ only requires about 2 trillion floating
-point operations (Tflops) of computation for this example.  Importantly, this
-approach only requires a single pass through the data.
+are so sparse, the product $A A^T$ only requires about 2.3 trillion floating
+point operations (Tflops) of computation for this example. This approach only
+requires a single pass through the data, a potentially significant advantage
+for I/O bound, low memory systems.
 
 A second issue is that the matrix cross product $\hat{A} ^T \hat{A}$ is much
 worse conditioned than $\hat{A}$, and we would expect its eigenvalue
@@ -122,13 +123,13 @@ IRLBA PCA decomposition computes the decomposition $\hat{A} V = U \Sigma$ for
 rank 3 matrices $U$ and $V$, while never explicitly forming the centered matrix
 $\hat{A}$. The problem is that the output matrix $V$ can be very large in our
 example and require a large amount of working memory, even though we are not
-interested in that output! For instance, on my wimpy 16 GB home computer this
-straightforward approach runs out of RAM, even when the problem is broken up
-into pieces, simply because of storage required for the output.
+interested in that output! For instance, on my home computer equipped with 16
+GB RAM this straightforward approach runs out of memory, even when the problem
+is broken up into pieces, simply because of storage required for the output.
 
 There is a little-used IRLBA option `right_only=TRUE` that can help in this
 case, but it requires some extra set up effort. When `right_only=TRUE` is
-specified, then IRLBA only returns $V$ and $\Sigma$, and also uses
+specified IRLBA only returns $V$ and $\Sigma$, and uses
 substantially less working memory during the computation. Note however, that we
 want the $U$ matrix, not the $V$ matrix, so this option isn't a perfect fit for
 this problem. A work around is to compute the SVD of $\hat{A}^T$ instead since
@@ -149,13 +150,14 @@ the cross product method above:
 In practice this added complication is not too burdensome since we need to
 write a custom matrix vector product anyway to process the data in pieces.
 
-Let p be the number of nonzero elements of $A$. Assuming that the IRLBA method
-takes about 40 matrix vector products to converge (a value I found in practice
-for this problem), then the IRLBA method requires about 40 * (p + n) = 400
-Gflops, or about one fifth of the total of the cross product method. However,
-40 iterations of IRLBA require 40 sweeps over the data, and if the data can't
-fit into main memory then this incurs additional I/O expense over the cross
-product method for this problem.
+Let p be the number of nonzero elements of $A$, and n the number of columns of
+$A$ (81,271,844). Assuming that the IRLBA method takes about 28 matrix vector
+products to converge (a value I found in practice for this problem), then the
+IRLBA method requires about 28 * (p + n) = 308 Gflops, or about one eigth of
+the total flops required by the cross product method. However, 28 iterations of
+IRLBA require 28 sweeps over the data, and if the data can't fit into main
+memory then this incurs additional I/O expense over the cross product method
+for this problem.
 
 
 # Test systems
@@ -240,7 +242,7 @@ to store the data in non-transposed form which in this example will achieve
 much higher compression, and then transpose the data as needed in RAM after its
 loaded.
 
-This takes a few hours to run on my quad-core home PC.  The pipelined
+This takes almost 3 hours (9,970 seconds) to run on my home PC.  The pipelined
 parallelism in the code uses about two CPU cores reasonably well.  I engange
 the remaining two cores on my home PC using explicit parallelism and R's
 `mcMap()` function.  If you have more cores, increase the mc.cores value below.
@@ -251,7 +253,7 @@ For instance on an Amazon r3.x8large machine with mc.cores=16 this takes about
 library(Matrix)
 library(parallel)
 t0 = proc.time()
-chunksize = 200000000
+chunksize = 100000000
 meta = Reduce(rbind, mcMap(function(f)
 {
   name = gsub("\\.gz", "", f); message(name)
@@ -265,7 +267,7 @@ meta = Reduce(rbind, mcMap(function(f)
     if(nrow(x) < 1) chunk = 0
     else
     {
-      x = sparseMatrix(i=x[,1], j=x[,2], x=1.0)
+      x = sparseMatrix(i=x[, 1] - x[1, 1] + 1, j=x[, 2], x=1.0)
       attr(x, "rowmeans") = rowMeans(x)
       cfn = sprintf("%s-%d.rdata", name, chunk)
       cf = file(cfn, open="wb")
@@ -279,17 +281,16 @@ meta = Reduce(rbind, mcMap(function(f)
   }
   close(p)
   meta
-}, dir(pattern="ALL.*\\.gz"), mc.cores=16))
+}, dir(pattern="ALL.*\\.gz"), mc.cores=2))
 print(proc.time() - t0)
-
 meta$end = cumsum(meta$nrow)
 meta$start = c(1, meta$end[-length(meta$end)] + 1)
 saveRDS(meta, file="meta.rdata")
 ```
 
 The "meta.rdata" file and the meta variable above stores the positions of each
-partition within the (vitual) full data matrix. That information is only
-required later by the IRLBA method, not the cross product method.
+partition within the (vitual) full data matrix. That information is required
+later by the IRLBA method but not the cross product method.
 
 
 # Cross product method implementation
@@ -324,9 +325,9 @@ s = svd(cross)
 dt = proc.time() - t1
 ```
 
-The cross product method takes about 6 hours to run on my home quad core PC.
-The same code with mc.cores=16 finishes in about 69 minutes on the Amzon
-r3.8xlarge AMI test machine.
+The cross product method takes about XXX hours to run on my home quad core PC.
+The same code with mc.cores=16 finishes in about 4,427 seconds (74 minutes) on
+the Amazon r3.8xlarge AMI test machine.
 
 
 
@@ -358,18 +359,27 @@ library(irlba)
 library(Matrix)
 library(parallel)
 meta = readRDS("meta.rdata")
+meta$file = sprintf("%s/%s", getwd(), meta$file)
 
 setClass("pmat", contains="list", S3methods=TRUE, slots=c(dims="numeric"))
 setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
   {
-    ans = Reduce(c, mcMap(function(i)
+    ans = rep(0.0, nrow(x))
+    p = mcMap(function(i)
     { 
       f = file(x$file[i], open="rb")
       a = unserialize(f)
       close(f)
       r = attr(a, "rowmeans") #rowMeans(a)
       drop(a %*% y - r * drop(crossprod(rep(1, length(y)), y)))
-    }, 1:length(x$file), mc.cores=4))
+    }, 1:length(x$file), mc.cores=4)
+    i = 1
+    for(j in 1:length(p))
+    { 
+      k = length(p[[j]])
+      ans[i:(i + k - 1)] = p[[j]]
+      i = i + k
+    }
     gc()
     ans
   })
@@ -386,30 +396,42 @@ setMethod("%*%", signature(x="numeric", y="pmat"), function(x ,y)
     gc()
     ans
   })
-
 A = new("pmat", as.list(meta), dims=c(tail(meta$end, 1), meta$ncol[1]))
 dim.pmat = function(x) x@dims
 nrow.pmat = function(x) x@dims[1]
 ncol.pmat = function(x) x@dims[2]
 
 t1 = proc.time()
-L  = irlba(A, nv=3, tol=1e-5, right_only=TRUE, verbose=TRUE, work=4)
+L  = irlba(A, nv=3, tol=1e-5, right_only=TRUE, work=4)
 dt = proc.time() - t1
+
+save(dt, L, file="chunked.out")
 ```
 
 With the default tolerance `tol=1e-5` and `work=4`, this method required about
-28 matrix vector products and took about 3.5 hours on my quad core home PC, or
-only about 1.7 times faster than the cross product method despite using only
-about one fifth as many flops.  As mentioned in the IRLBA notes above, the
+28 matrix vector products and took about XXX hours on my quad core home PC, or
+
+_UPDATE IN PROCESS_
+
+only about XXX times faster than the cross product method despite using only
+about one eigth as many flops.  As mentioned in the IRLBA notes above, the
 method requires fewer flops but greater I/O than the cross product method. This
 balance changes significantly for different sized problems. For example, IRLBA
 shoud have a larger performance advantage for bigger problems with more than
 2,504 people.
 
-The same problem finishes in about 19 minutes on the r3.8xlarge Amazon test
-sytstem, or nearly 4x faster on that machine. The better performance on the
-Amazon system is due to the large amount of RAM on that machine. The whole
-problem can fit in RAM and the data files remain in a fast buffer cache.
+The same problem finishes in only 521 seconds on the r3.8xlarge Amazon test
+sytstem with `mc.cores=16`. That's about 8 times faster than the cross product
+method on that system, and also about the ratio of computational work in
+Flops between the two methods.
+
+The better performance on the Amazon system compared to my home PC is due to
+the large amount of RAM on that machine which mitigates I/O cost of iterating
+over the data 28 times from disk. The whole problem can fit in RAM on the
+Amazon machineand the data files remain in a fast buffer cache.
+
+
+### Minor technical notes
 
 The use of `gc()` just after each reduce is important for the multicore
 parallelism used by `mcMap()` to make sure that the process image is as small
@@ -417,3 +439,16 @@ as possible in the next iteration on limited memory systems (like my home PC).
 Otherwise each fork can bloat in memory size and eventually spill to swap,
 which can really slow things down. I'm investigating using non-forked
 parallelism which might be faster in this case for that reason.
+
+Note that the `pmat %*% numeric` matrix vector product explicitly allocates a
+result and fills in the values in a for loop after the parallel section.
+Compare this to the much more elegant `Reduce(Map(...))` approach in the
+`numeric %*% pmat` product. One could use a reduction function like `c()`
+instead, but that incurs lots of extra memory allocation and copy overhead
+that's avoided by the less elegant looking (but more efficient) approach used
+above.
+
+# Plot the output
+
+The two methods return nearly the same output as expected.
+XXX  TODO
