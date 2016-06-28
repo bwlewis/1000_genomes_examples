@@ -325,10 +325,10 @@ s = svd(cross)
 dt = proc.time() - t1
 ```
 
-The cross product method takes about XXX hours to run on my home quad core PC.
-The same code with mc.cores=16 finishes in about 4,427 seconds (74 minutes) on
-the Amazon r3.8xlarge AMI test machine.
-
+The cross product method takes about 6 hours (351 minutes) to run on my home
+PC.  The same code with mc.cores=16 finishes in about 4,427 seconds (74
+minutes) on the Amazon r3.8xlarge AMI test machine. The r3.8xlarge system has
+4x the number of CPU cores as my home PC and lower I/O cost.
 
 
 # IRLBA implementation
@@ -409,16 +409,14 @@ save(dt, L, file="chunked.out")
 ```
 
 With the default tolerance `tol=1e-5` and `work=4`, this method required about
-28 matrix vector products and took about XXX hours on my quad core home PC, or
+28 matrix vector products and took just under 2  hours (108 minutes) on my home
+PC, or only about 3.25 times faster than the cross product method despite using
+only about one eigth as many flops.  As mentioned in the IRLBA notes above, the
+method requires fewer flops but greater I/O than the cross product method.
 
-_UPDATE IN PROCESS_
-
-only about XXX times faster than the cross product method despite using only
-about one eigth as many flops.  As mentioned in the IRLBA notes above, the
-method requires fewer flops but greater I/O than the cross product method. This
-balance changes significantly for different sized problems. For example, IRLBA
-shoud have a larger performance advantage for bigger problems with more than
-2,504 people.
+The compute to I/O balance changes significantly for different sized problems.
+IRLBA shoud have a larger performance advantage for bigger problems with more
+than 2,504 people.
 
 The same problem finishes in only 521 seconds on the r3.8xlarge Amazon test
 sytstem with `mc.cores=16`. That's about 8 times faster than the cross product
@@ -428,7 +426,7 @@ Flops between the two methods.
 The better performance on the Amazon system compared to my home PC is due to
 the large amount of RAM on that machine which mitigates I/O cost of iterating
 over the data 28 times from disk. The whole problem can fit in RAM on the
-Amazon machineand the data files remain in a fast buffer cache.
+Amazon machine and the data files remain in a fast buffer cache.
 
 
 ### Minor technical notes
