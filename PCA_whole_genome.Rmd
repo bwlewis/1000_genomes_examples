@@ -100,7 +100,7 @@ The biggest part of the work in step 4 is the computation of $A A^T$, a problem
 that on the whole could require a large amount of memory to compute.  But this
 matrix product is very easy to break up into smaller chunks.  Because the data
 are so sparse, the product $A A^T$ only requires about 2.3 trillion floating
-point operations (Tflops) of computation for this example. This approach only
+point operations (Tflop) of computation for this example. This approach only
 requires a single pass through the data, a potentially significant advantage
 for I/O bound, low memory systems.
 
@@ -153,9 +153,9 @@ write a custom matrix vector product anyway to process the data in pieces.
 Let p be the number of nonzero elements of $A$, and n the number of columns of
 $A$ (81,271,844). Assuming that the IRLBA method takes about 28 matrix vector
 products to converge (a value I found in practice for this problem), then the
-IRLBA method requires about 28 * (p + n) = 308 Gflops, or about one eigth of
-the total flops required by the cross product method. However, 28 iterations of
-IRLBA require 28 sweeps over the data, and if the data can't fit into main
+IRLBA method requires about 28 * (p + n) = 308 Gflop, or about one eigth of the
+total flop count required by the cross product method. However, 28 iterations
+of IRLBA require 28 sweeps over the data, and if the data can't fit into main
 memory then this incurs additional I/O expense over the cross product method
 for this problem.
 
