@@ -282,7 +282,7 @@ cross = Reduce(`+`,
 )
 s = svd(cross)
 dt = proc.time() - t1</code></pre>
-<p>The cross product method takes about XXX hours to run on my home quad core PC. The same code with mc.cores=16 finishes in about 4,427 seconds (74 minutes) on the Amazon r3.8xlarge AMI test machine.</p>
+<p>The cross product method takes about 6 hours (351 minutes) to run on my home PC. The same code with mc.cores=16 finishes in about 4,427 seconds (74 minutes) on the Amazon r3.8xlarge AMI test machine. The r3.8xlarge system has 4x the number of CPU cores as my home PC and lower I/O cost.</p>
 </div>
 <div id="irlba-implementation" class="section level1">
 <h1>IRLBA implementation</h1>
@@ -340,11 +340,10 @@ L  = irlba(A, nv=3, tol=1e-5, right_only=TRUE, work=4)
 dt = proc.time() - t1
 
 save(dt, L, file=&quot;chunked.out&quot;)</code></pre>
-<p>With the default tolerance <code>tol=1e-5</code> and <code>work=4</code>, this method required about 28 matrix vector products and took about XXX hours on my quad core home PC, or</p>
-<p><em>UPDATE IN PROCESS</em></p>
-<p>only about XXX times faster than the cross product method despite using only about one eigth as many flops. As mentioned in the IRLBA notes above, the method requires fewer flops but greater I/O than the cross product method. This balance changes significantly for different sized problems. For example, IRLBA shoud have a larger performance advantage for bigger problems with more than 2,504 people.</p>
+<p>With the default tolerance <code>tol=1e-5</code> and <code>work=4</code>, this method required about 28 matrix vector products and took just under 2 hours (108 minutes) on my home PC, or only about 3.25 times faster than the cross product method despite using only about one eigth as many flops. As mentioned in the IRLBA notes above, the method requires fewer flops but greater I/O than the cross product method.</p>
+<p>The compute to I/O balance changes significantly for different sized problems. IRLBA shoud have a larger performance advantage for bigger problems with more than 2,504 people.</p>
 <p>The same problem finishes in only 521 seconds on the r3.8xlarge Amazon test sytstem with <code>mc.cores=16</code>. That’s about 8 times faster than the cross product method on that system, and also about the ratio of computational work in Flops between the two methods.</p>
-<p>The better performance on the Amazon system compared to my home PC is due to the large amount of RAM on that machine which mitigates I/O cost of iterating over the data 28 times from disk. The whole problem can fit in RAM on the Amazon machineand the data files remain in a fast buffer cache.</p>
+<p>The better performance on the Amazon system compared to my home PC is due to the large amount of RAM on that machine which mitigates I/O cost of iterating over the data 28 times from disk. The whole problem can fit in RAM on the Amazon machine and the data files remain in a fast buffer cache.</p>
 <div id="minor-technical-notes" class="section level3">
 <h3>Minor technical notes</h3>
 <p>The use of <code>gc()</code> just after each reduce is important for the multicore parallelism used by <code>mcMap()</code> to make sure that the process image is as small as possible in the next iteration on limited memory systems (like my home PC). Otherwise each fork can bloat in memory size and eventually spill to swap, which can really slow things down. I’m investigating using non-forked parallelism which might be faster in this case for that reason.</p>
