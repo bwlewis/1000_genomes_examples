@@ -448,5 +448,36 @@ above.
 
 # Plot the output
 
-The two methods return nearly the same output as expected.
-XXX  TODO
+The two methods return nearly the same output (as expected). Here is a comparison
+of the first three singular values returned by the IRLBA method and by the
+cross product method:
+
+```{r, eval=FALSE, echo=TRUE}
+L$d - sqrt(s$d[1:3])
+#[1] -9.094947e-11 -5.638867e-11  0.000000e+00
+```
+
+And a comparison of the largest principal component vectors computed by each
+method (Euclidean norm of their difference):
+```{r, eval=FALSE, echo=TRUE}
+drop(sqrt(crossprod(L$v[,1] - s$u[,1])))
+#[1] 1.795767e-14
+```
+
+Make a nice 3d scatterplot of the first three principal component vectors
+with the threejs package:
+
+```{r, eval=TRUE, echo=FALSE}
+# Assumes that chunked.out (output from the IRLBA method) is in the path.
+load("chunked.out")
+```
+```{r, eval=TRUE, echo=TRUE}
+library(threejs)
+scatterplot3js(L$v, size=0.5)
+```
+
+Compare these clusters with those obtained from one chromosome here
+http://bwlewis.github.io/1000_genomes_examples/PCA.html. As shown in that
+example, the clusters correspond to superpopulations. Notice however that there
+is a but more detail in the whole genome plot. Zooming in on some of the
+clusters shows distinct subclusters.
