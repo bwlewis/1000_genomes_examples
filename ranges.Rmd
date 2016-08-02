@@ -71,10 +71,10 @@ and disk cache effects, etc.
 ### Download the data files
 
 ```
-wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr7.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz 
-wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr8.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz 
+wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr7.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
+wget ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/ALL.chr8.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz 
 
-wget -O genes.zip https://www.pharmgkb.org/download.do?objId=genes.zip
+wget -O genes.zip "https://www.pharmgkb.org/download.do?objId=genes.zip"
 unzip genes.zip
 ```
 
@@ -174,11 +174,12 @@ takes only seconds) and don't bother to save it. The following script loads
 the 1,989 listed gene ranges corresponding to 
 chromosomes 7 and 8 into a data.frame.
 ```{r, eval=FALSE}
-cmd = "cat genes.tsv | cut -f 5,12- | grep 'chr[7,8]' | sed /-0000/d | sed -e 's/chr7/7/;s/chr8/8/'"
+cmd = "cat genes.tsv | cut -f 6,13- | grep 'chr[7,8]' | sed /-0000/d | sed -e 's/chr7/7/;s/chr8/8/'"
 p = pipe( cmd, open="r")
-genes = read.table(p, stringsAsFactors=FALSE)
+genes = read.table(p, stringsAsFactors=FALSE, header=FALSE, sep="\t")
 close(p)
 names(genes) = c("gene","chromosome","start","end")
+genes = genes[genes$start > 0 & genes$end > 0, ]
 ```
 
 The output of the above steps consists of two RData files corresponding to
@@ -271,19 +272,18 @@ overlap = function(chromosome)
   t1 = proc.time()
   ans = findOverlaps(ir1, ir2)
   print(proc.time()-t1)
-  g$gene[ans@subjectHits]
+  data.frame(gene=g$gene, count=countRnodeHits(ans))
 }
 
 # Compute the overlaps in parallel with mclapply for chromosomes 7 and 8
 t1 = proc.time()
-ans = unlist(mclapply(7:8, overlap, mc.cores=2L))
+ans = Reduce(rbind, mclapply(7:8, overlap, mc.cores=2L))
+ans = ans[order(ans$count, decreasing=TRUE), ]
 
 # Top 50 genes with most overlapping variants
-ans = head(sort(table(ans), decreasing=TRUE), n=50)
+head(ans, n=50)
 print(proc.time()-t1)
-```
-The ouput of this step looks identical to that from the data.table example:
-```{r,eval=FALSE}
+
 head(ans, n=10)
 #  CSMD1 CNTNAP2    SGCZ    SDK1   MAGI2  PTPRN2   CSMD3    NRG1   AUTS2   SNTG1 
 # 148202   76416   52725   45673   44388   42186   34721   33353   31673   29758 
