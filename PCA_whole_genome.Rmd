@@ -490,5 +490,5 @@ load(url("http://illposed.net/chr20_svd.RData"))
 scatterplot3js(p$u, size=0.5, grid=FALSE)
 ```
 Notice that there
-is a but more detail in the whole genome plot. Zooming in on some of the
+is finer detail in the whole genome plot. Zooming in on some of the
 clusters shows distinct subclusters.
