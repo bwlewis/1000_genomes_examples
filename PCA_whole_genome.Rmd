@@ -1,5 +1,8 @@
 # 1000 Genomes Whole Genome PCA Example
 
+<h2>Upshoti</h2> It's pretty easy to compute principal components of variants across
+thousands of whole genomes.
+
 This example illustrates principal components (PCA) decomposition of genomic
 variant data of 2,504 people from the 1000 genomes project[^1].  The example
 projects genome-wide variant data into a three dimensional subspace.
@@ -110,6 +113,8 @@ decomposition numerical accuracy to suffer as a result. However, since we are
 only interested in the three eigenvectors associated with the three largest
 eigenvalues of that matrix, the effect of poor conditioning will not be as
 pronounced as, say, for the eigenvectors corresponding to small eigenvalues.
+See these notes https://bwlewis.github.io/irlba/comparison.html for
+examples of numerical instability associated with this approach.
 
 Note that if the matrix were to have many more rows so that $A A^T$ becomes
 large then the cross product method might not work out so well! In those cases,
@@ -476,8 +481,13 @@ library(threejs)
 scatterplot3js(L$v, size=0.5)
 ```
 
-Compare these clusters with those obtained from one chromosome here
-http://bwlewis.github.io/1000_genomes_examples/PCA.html. As shown in that
-example, the clusters correspond to superpopulations. Notice however that there
+Compare these clusters with those obtained from one chromosome (20) here
+http://bwlewis.github.io/1000_genomes_examples/PCA.html:
+```{r,eval=TRUE,echo=FALSE,}
+library(threejs)
+load(url("http://illposed.net/chr20_svd.RData"))
+scatterplot3js(p$u, size=0.5)
+```
+Notice that there
 is a but more detail in the whole genome plot. Zooming in on some of the
 clusters shows distinct subclusters.
