@@ -1,4 +1,5 @@
 # VCF Principal Components Example
+# Assumes that parse.c is compiled and copied to executable parsevcf program in PATH.
 # Input: One or more variant files in *.vcf.gz
 # Optional input:
 #   CHUNKSIZE environment variable (number of VCF file rows per chunk)
