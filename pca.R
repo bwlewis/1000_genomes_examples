@@ -1,5 +1,8 @@
 # VCF Principal Components Example
-# Assumes that parse.c is compiled and copied to executable parsevcf program in PATH.
+# Assumes that parse.c (https://raw.githubusercontent.com/bwlewis/1000_genomes_examples/master/parse.c)
+# is compiled and copied to executable parsevcf program in PATH. This implementation also
+# assumes MPI and a global shared file system.
+#
 # Input: One or more variant files in *.vcf.gz
 # Optional input:
 #   CHUNKSIZE environment variable (number of VCF file rows per chunk)
