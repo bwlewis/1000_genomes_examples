@@ -1,6 +1,6 @@
 # VCF Principal Components Example
 # Assumes that parse.c (https://raw.githubusercontent.com/bwlewis/1000_genomes_examples/master/parse.c)
-# is compiled and copied to executable parsevcf program in PATH. This implementation also
+# is compiled and copied to executable parsevcf program in PATH. This implementation
 # assumes MPI and a global shared file system.
 #
 # Input: One or more variant files in *.vcf.gz
@@ -9,8 +9,8 @@
 #   NCOMP environment variable (number of components, defaults to 3)
 # Output: pca.rdata R data file
 # Example invocation
-# CHUNKSIZE=1000000 mpirun -np 4 Rscript --slave pca.R
-#
+# CHUNKSIZE=10000000 mpirun -np 4 Rscript --slave pca.R
+
 suppressMessages(library(Matrix))
 suppressMessages(library(doMPI))
 suppressMessages(library(methods))
@@ -19,6 +19,10 @@ cl = startMPIcluster()
 registerDoMPI(cl)
 
 # 1. VCF parsing
+# Parse the VCF input data files in *.vcf.gz into partitioned sparse
+# R submatrices with at most CHUNKSIZE nonzer elements per matrix, saving
+# the partitions to R data files for use by the PCA computation following
+# this section.
 
 t0 = proc.time()
 # Establish an approximate chunk size based on 1000 Genomes project estimates
@@ -45,7 +49,7 @@ meta = foreach(f=dir(pattern="*\\.vcf\\.gz"), .combine=rbind, .packages=c("metho
     {
       x = sparseMatrix(i=x[, 1] - x[1, 1] + 1, j=x[, 2], x=1.0)
       attr(x, "rowmeans") = rowMeans(x)
-      cfn = sprintf("%s-%d.rdata", name, chunk)
+      cfn = sprintf("%s-%d.pmat.rdata", name, chunk)
       cf = file(cfn, open="wb")
       serialize(x, connection=cf, xdr=FALSE)
       close(cf)
@@ -63,9 +67,10 @@ meta$end = cumsum(meta$nrow)
 meta$start = c(1, meta$end[-length(meta$end)] + 1)
 meta$file = sprintf("%s/%s", getwd(), meta$file)
 
-#save("meta", file="meta.rdata") # debug
 
-# 2. Principal components
+
+# 2. Principal components computation
+
 ncomp = as.numeric(Sys.getenv("NCOMP"))
 if(is.na(ncomp)) ncomp = 3
 
@@ -78,7 +83,7 @@ setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
       f = file(x$file[i], open="rb")
       a = unserialize(f)
       close(f)
-      r = attr(a, "rowmeans") #rowMeans(a)
+      r = attr(a, "rowmeans")
       drop(a %*% y - r * drop(crossprod(rep(1, length(y)), y)))
     }
     i = 1
@@ -116,7 +121,7 @@ saveRDS(L, file="pca.rdata")
 message("PCA time: ", dt[[3]])
 
 # Remove scratch files
-system("rm -f chr*.rdata")
+system("rm -f *.pmat.rdata")
 
 # Shutdown the cluster and quit
 closeCluster(cl)
