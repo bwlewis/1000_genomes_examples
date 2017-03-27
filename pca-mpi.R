@@ -33,7 +33,7 @@ N  = clusterSize(cl)
 registerDoMPI(cl)
 
 # Set the environment variable SKIP_PARSE=TRUE to skip parsing step.
-SKIP_PARSE = (Sys.getnev("SKIP_PARSE") == "TRUE")
+SKIP_PARSE = (Sys.getenv("SKIP_PARSE") == "TRUE")
 
 
 if(SKIP_PARSE)
