@@ -9,7 +9,7 @@
 #
 # Input: One or more variant files in *.vcf.gz
 # Optional input:
-#   CHUNKSIZE environment variable number nonzero matrix elements per chunk, default 1e8
+#   CHUNKSIZE environment variable number nonzero matrix elements per chunk, default 1e7
 #   OMP_NUM_CORES environment variable number of CPUs to use, default parallel::NP
 #   NCOMP environment variable number of components, default 3
 # Output: pca.rdata R data file, a list with principal component vectors and values,
@@ -46,7 +46,7 @@ if(SKIP_PARSE)
   chunksize = as.numeric(Sys.getenv("CHUNKSIZE"))
   if(is.na(chunksize))
   {
-     chunksize = 1e8
+     chunksize = 1e7
   }
   message("chunksize: ", chunksize)
   a = mclapply(dir(pattern="*\\.vcf\\.gz"), function(f)
