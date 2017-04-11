@@ -103,7 +103,7 @@ reduction still contains a large amount of the information in the original
 data.
 
 Of course we can _see_ data in three dimensions, so lets look at the result!
-```{r, eval=TRUE, echo=TRUE}
+```{r, eval=TRUE, echo=FALSE}
 suppressMessages(
 {
   library(threejs)
