@@ -14,9 +14,9 @@ high-dimensional genome-wide variant data into a three dimensional subspace.
 ## Genomic variants
 
 Our genomes consist of billions of copies of four base molecules arranged in
-pairs along our DNA. Sequences of _base pairs_ define all our genomic traits
-like eye color and whether we have freckles. Despite the immense length of our
-genome, there is remarkably little variation from one person to the next.
+pairs along our DNA. Sequences of these _base pairs_ define all our genomic
+traits like eye color and whether we have freckles. Despite the immense length
+of our genome, there is remarkably little variation from person to person.
 
 Rather than always work with the full sequence of base pairs, we often
 take advantage of the small variation from one person to the next to simply
