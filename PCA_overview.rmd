@@ -114,8 +114,13 @@ N = length(levels(ped$Superpopulation))
 scatterplot3js(L$v, size=0.5, grid=FALSE,  col=rainbow(N)[ped$Superpopulation])
 ```
 The data exhibit obvious groups, and those groups correspond to ethnicities.
-In fact, the above plot colors the data by "Superpopulation" and that corresponds
-very well to the displayed data clusters.
+The above plot colors the data by "Superpopulation", a designation of each
+subject's reported racial heritage. The superpopulations correspond very well
+to the latent clusters "discovered" in the data by PCA. Notice the level
+of detail in each cluster, some of which display distinct sub-clusters.
+Compare with the next illustration computed using only a portion of the
+variants across the whole genome (similar to the plot shown in the Google
+Genomics example above).
 ```{r,eval=TRUE,echo=FALSE,}
 library(DT)
 datatable(data.frame(Color=c("red", "yellow", "green", "blue", "purple"),
