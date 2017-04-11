@@ -119,7 +119,8 @@ very well to the displayed data clusters.
 ```{r,eval=TRUE,echo=FALSE,}
 library(DT)
 datatable(data.frame(Color=c("red", "yellow", "green", "blue", "purple"),
-Superpopulation=c("AFR", "AMR", "EAS", "EUR", "SAS")), options = list(dom='t', columnDefs=list(list(targets=0:1, class="dt-right"))), rownames=FALSE)
+Superpopulation=c("AFR", "AMR", "EAS", "EUR", "SAS"),
+Description=c("African", "Admixed American", "East Asian", "European", "South Asian")), options = list(dom='t', columnDefs=list(list(targets=0:2, class="dt-right"))), rownames=FALSE)
 ```
 
 Compare these clusters with those obtained from one chromosome (20) here
