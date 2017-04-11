@@ -9,7 +9,7 @@
 #
 # Input: One or more variant files in *.vcf.gz
 # Optional input:
-#   CHUNKSIZE environment variable number nonzero matrix elements per chunk, default 1e7
+#   CHUNKSIZE environment variable number nonzero matrix elements per chunk, default 1e8
 #   OMP_NUM_THREADS environment variable number of CPUs to use, default parallel::NP
 #   NCOMP environment variable number of components, default 3
 # Output: pca.rdata R data file, a list with principal component vectors and values,
@@ -26,7 +26,7 @@ suppressMessages(
 })
 
 NP = as.integer(Sys.getenv("OMP_NUM_THREADS"))
-if(is.na(NP)) NP = detectCores()
+if(is.na(NP)) NP = 40
 message("cores ", NP)
 
 # 1. VCF parsing
@@ -47,12 +47,15 @@ if(SKIP_PARSE)
   chunksize = as.numeric(Sys.getenv("CHUNKSIZE"))
   if(is.na(chunksize))
   {
-     chunksize = 1e7
+     chunksize = 1e8
   }
   message("chunksize: ", chunksize)
   a = mclapply(dir(pattern="*\\.vcf\\.gz"), function(f)
     {
       name = gsub("\\.gz", "", f); message(name)
+# work around for http://r.789695.n4.nabble.com/R-3-0-1-parallel-collection-triggers-quot-long-memory-not-supported-yet-quot-td4668388.html  -- we save temporary parse results to files and then collate instead of using sendMaster() in the mc code, which limits partial results to 2GB :/
+      vfd = sprintf("%s.temp.rdata", name)
+      mfd = sprintf("%s.meta.temp.rdata", name)
       chunk = 1
       p = pipe(sprintf("zcat %s  | cut  -f '10-' | parsevcf | cut -f '1-2'", f), open="r")
       meta = data.frame()
@@ -61,6 +64,7 @@ if(SKIP_PARSE)
       {
         x = tryCatch(read.table(p, colClasses=c("integer", "integer"), fill=TRUE, row.names=NULL, nrows=chunksize),
                      error=function(e) data.frame())
+print(dim(x))
         if(nrow(x) < 1) chunk = 0
         else
         {
@@ -72,15 +76,22 @@ if(SKIP_PARSE)
         }
       }
       close(p)
-      list(meta=meta, values=values)
+      saveRDS(meta, file=mfd)
+      saveRDS(values, file=vfd)
+      c(mfd, vfd)
   }, mc.cores=NP)
-  meta = Reduce(rbind, Map(function(x) x$meta, a))
-  message("parsing time: ", (proc.time() - t0)[[3]])
+  meta = Reduce(rbind, Map(function(x)
+    {
+      readRDS(x[1])
+    }, a))
   meta$end = cumsum(meta$nrow)
   meta$start = c(1, meta$end[-length(meta$end)] + 1)
   meta = as.list(meta)
-  meta$values = Reduce(c, Map(function(x) x$values, a))
-  rm(a)
+  meta$values = Reduce(c, Map(function(x)
+    {
+      readRDS(x[2])
+    }, a))
+  message("parsing time: ", (proc.time() - t0)[[3]])
   save(meta, file="meta.rdata") # for optional re-use
 }
 
@@ -88,7 +99,7 @@ if(SKIP_PARSE)
 # 2. Principal components computation
 
 ncomp = as.numeric(Sys.getenv("NCOMP"))
-if(is.na(ncomp)) ncomp = 3
+if(is.na(ncomp)) ncomp = 4
 
 setClass("pmat", contains="list", S3methods=TRUE, slots=c(dims="numeric"))
 setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
