@@ -40,6 +40,7 @@ SKIP_PARSE = (Sys.getenv("SKIP_PARSE") == "TRUE")
 
 if(SKIP_PARSE)
 {
+  message("Loading previously parsed data")
   load("meta.rdata")
 } else
 {
@@ -64,7 +65,6 @@ if(SKIP_PARSE)
       {
         x = tryCatch(read.table(p, colClasses=c("integer", "integer"), fill=TRUE, row.names=NULL, nrows=chunksize),
                      error=function(e) data.frame())
-print(dim(x))
         if(nrow(x) < 1) chunk = 0
         else
         {
@@ -105,10 +105,10 @@ setClass("pmat", contains="list", S3methods=TRUE, slots=c(dims="numeric"))
 setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
   {
     ans = rep(0.0, nrow(x))
-    p = Map(function(i)
+    p = mcMap(function(i)
     {
       drop(x$values[[i]] %*% y - attr(x$values[[i]], "rowmeans") * drop(crossprod(rep(1, length(y)), y)))
-    }, seq(1, length(x$start)))
+    }, seq(1, length(x$start)), mc.cores=NP)
     for(j in 1:length(p))
     {
       ans[x$start[j]:x$end[j]] = p[[j]]
@@ -129,6 +129,7 @@ dim.pmat = function(x) x@dims
 nrow.pmat = function(x) x@dims[1]
 ncol.pmat = function(x) x@dims[2]
 
+message("Starting PCA computation")
 t1 = proc.time()
 L  = irlba(A, nv=ncomp, tol=1e-5, right_only=TRUE, work=4)
 dt = proc.time() - t1
