@@ -109,15 +109,24 @@ suppressMessages(
   library(threejs)
 })
 load("chunked.rdata")
-scatterplot3js(L$v, size=0.5, grid=FALSE)
+load("ped.rdata") # superpopulations
+N = length(levels(ped$Superpopulation))
+scatterplot3js(L$v, size=0.5, grid=FALSE,  col=rainbow(N)[ped$Superpopulation])
 ```
 The data exhibit obvious groups, and those groups correspond to ethnicities.
+In fact, the above plot colors the data by "Superpopulation" and that corresponds
+very well to the displayed data clusters.
+```{r,eval=TRUE,echo=FALSE,}
+library(DT)
+datatable(data.frame(Color=c("red", "yellow", "green", "blue", "purple"),
+Superpopulation=c("AFR", "AMR", "EAS", "EUR", "SAS")), options = list(dom='t', columnDefs=list(list(targets=0:1, class="dt-right"))), rownames=FALSE)
+```
 
 Compare these clusters with those obtained from one chromosome (20) here
 http://bwlewis.github.io/1000_genomes_examples/PCA.html:
 ```{r,eval=TRUE,echo=FALSE,}
 load("chr20.rdata")
-scatterplot3js(p$u, size=0.5, grid=FALSE)
+scatterplot3js(p$u, size=0.5, grid=FALSE,  col=rainbow(N)[ped$Superpopulation])
 ```
 Notice that there is much finer detail in the whole genome plot. Zooming in on
 some of the clusters shows distinct subclusters.
