@@ -10,12 +10,12 @@
 # Input: One or more variant files in *.vcf.gz
 # Optional input:
 #   CHUNKSIZE environment variable number nonzero matrix elements per chunk, default 1e7
-#   OMP_NUM_CORES environment variable number of CPUs to use, default parallel::NP
+#   OMP_NUM_THREADS environment variable number of CPUs to use, default parallel::NP
 #   NCOMP environment variable number of components, default 3
 # Output: pca.rdata R data file, a list with principal component vectors and values,
 #         meta.rdata temporary file left from the parsing step for optional re-use.
 # Example invocation
-# OMP_NUM_CORES=8  Rscript --slave pca-smp.R
+# OMP_NUM_THREADS=8  Rscript --slave pca-smp.R
 
 suppressMessages(
 {
@@ -25,8 +25,9 @@ suppressMessages(
   library(parallel)
 })
 
-NP = as.integer(Sys.getenv("OMP_NUM_CORES"))
-if(is.na(NP)) NP = NP
+NP = as.integer(Sys.getenv("OMP_NUM_THREADS"))
+if(is.na(NP)) NP = detectCores()
+message("cores ", NP)
 
 # 1. VCF parsing
 # Parse the VCF input data files in *.vcf.gz into partitioned sparse
