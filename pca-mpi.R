@@ -63,7 +63,7 @@ if(SKIP_PARSE)
     {
       name = gsub("\\.gz", "", f); message(name)
       chunk = 1
-      p = pipe(sprintf("zcat %s  | sed /^#/d | cut  -f '10-' | parsevcf | cut -f '1-2'", f), open="r")
+      p = pipe(sprintf("zcat %s  | cut  -f '10-' | parsevcf | cut -f '1-2'", f), open="r")
       meta = data.frame()
       while(chunk > 0)
       {
