@@ -92,7 +92,7 @@ if(SKIP_PARSE)
       readRDS(x[2])
     }, a))
   message("parsing time: ", (proc.time() - t0)[[3]])
-  save(meta, file="meta.rdata") # for optional re-use
+  save(meta, file="meta.rdata") # for optional re-use (NOTE: this takes a *long* time, consider adding compress=FALSE)
 }
 
 
