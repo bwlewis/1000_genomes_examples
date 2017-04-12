@@ -26,7 +26,7 @@ suppressMessages(
 })
 
 NP = as.integer(Sys.getenv("OMP_NUM_THREADS"))
-if(is.na(NP)) NP = 40
+if(is.na(NP)) NP = detectCores()
 message("cores ", NP)
 
 # 1. VCF parsing
