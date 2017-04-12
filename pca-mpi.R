@@ -13,6 +13,12 @@
 # present in its local working directory. It does not assume a shared file
 # system.
 #
+# NOTE: This version uses MPI to coordinate cross-node work in master/slave
+# fashion, but simple forked parallelism within nodes. The number of MPI nodes
+# should be set to the number of nodes + 1 (not generally the number of CPU
+# cores). The extra MPI node (the + 1) is used by Rmpi as the master
+# coordinating process.
+#
 # Input: One or more variant files in *.vcf.gz
 # Optional input:
 #   CHUNKSIZE environment variable (number of VCF file rows per chunk)
