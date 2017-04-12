@@ -50,11 +50,11 @@ for many details.
 
 ## Variant analysis
 
-Importantly, the likelihood of certain diseases may be encoded in our genomic
-sequences.  The study of modified DNA from cells degraded by cancer is also an
-importantly and heavily studied topic.
+The likelihood of certain diseases may be encoded in our genomic sequences.
+The study of modified DNA from cells degraded by cancer is also an importantly
+and heavily studied topic.
 
-Scientists analyze genomic variants using a huge and constantly expanding
+Scientists analyze genomic variants using a large and constantly expanding
 variety of techniques. This note analyzes variant data from the NIH 1000
 Genomes Project using a classification method called principal components
 analysis (PCA). The method is representative of many unsupervised machine
@@ -80,7 +80,7 @@ Both approaches use R.
 
 ## 1000 Genomes Analysis
 
-We arranged variant data from the 1000 Genomes Project ins a very sparse matrix
+We arranged variant data from the 1000 Genomes Project into a very sparse matrix
 of 2,504 rows (people) by 81,271,844 columns (genomic variants), but with only
 about 9.8 billion nonzero-elements, that is only a little over 2% fill-in.  In
 other words not every person exhibits all variants.
@@ -89,10 +89,11 @@ Our objective is to project these 81,271,844 dimensional data down to just
 three dimensions using principal components analysis (PCA) and visualize the
 resulting clusters.
 
-Our approach breaks the problem up into sequences of smaller problems.  Solving
-the problem by breaking it up into manageable pieces has the advantage of
-promoting scalability. Those pieces can be run on other CPU cores or even
-networked computers relatively easily.
+We take an approach breaks the problem up into sequences of smaller problems.
+Solving the problem by breaking it up into manageable pieces has the advantage
+of promoting scalability. Those pieces can be run on other CPU cores or even
+networked computers relatively easily.  Importantly, our approach can handle
+large numbers of whole genomes.
 
 
 ## Results
@@ -113,7 +114,7 @@ load("ped.rdata") # superpopulations
 N = length(levels(ped$Superpopulation))
 scatterplot3js(L$v, size=0.5, grid=FALSE,  col=rainbow(N)[ped$Superpopulation])
 ```
-The data exhibit obvious groups, and those groups correspond to ethnicities.
+The data exhibit obvious groups, and those groups in this case correspond to race and ethnicity.
 The above plot colors the data by "Superpopulation", a designation of each
 subject's reported racial heritage. The superpopulations correspond very well
 to the latent clusters "discovered" in the data by PCA. Notice the level
