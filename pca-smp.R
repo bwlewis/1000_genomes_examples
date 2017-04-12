@@ -70,7 +70,7 @@ if(SKIP_PARSE)
         {
           x = sparseMatrix(i=x[, 1] - x[1, 1] + 1, j=x[, 2], x=1.0)
           attr(x, "rowmeans") = rowMeans(x)
-          meta = rbind(meta, data.frame(file=f, chunk=chunk, nrow=nrow(x), ncol=ncol(x), stringsAsFactors=FALSE))
+          meta = rbind(meta, data.frame(source_file=f, file_chunk=chunk, nrow=nrow(x), ncol=ncol(x), stringsAsFactors=FALSE))
           values = c(values, x)
           chunk = chunk + 1
         }

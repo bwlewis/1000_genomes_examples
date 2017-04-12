@@ -6,6 +6,7 @@
 #
 # cc -O2 -o parsevcf parse.c
 # sudo mv parsevcf /usr/local/bin
+# (alternatively, don't move the parsevcf program but invoke R with PATH=$(pwd):$PATH)
 #
 # This implementation assumes MPI and that the input *.vcf.gz files are split
 # up among the workers. Each worker will process only the *.vcf.gz files
@@ -48,12 +49,8 @@ if(SKIP_PARSE)
   # this section.
 
   t0 = proc.time()
-  # Establish an approximate chunk size based on 1000 Genomes project estimates
   chunksize = as.numeric(Sys.getenv("CHUNKSIZE"))
-  if(is.na(chunksize))
-  {
-     chunksize = floor(100000000 * as.numeric(system("free -b | sed -n 2p | tr -s ' ' | cut -f 2 -d ' '", intern=TRUE)) / 16e9)
-  }
+  if(is.na(chunksize)) chunksize = 1e7  # adjust as needed to fit your memory constraints
   if(is.na(chunksize)) stop("error setting chunksize")
   message("chunksize: ", chunksize)
 
