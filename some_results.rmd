@@ -12,7 +12,7 @@ Wall-clock times for each of two phases, data parsing and PCA computation, are
 reported below.
 
 
-## My desktop PC (file-based)
+## My desktop PC (file-based pca-mpi.R)
 
 System configuration was
 
@@ -24,13 +24,14 @@ System configuration was
 - OpenBLAS library version 0.2.14-1ubuntu1 (based on Goto's BLAS version 1.13), `OMP_NUM_THREADS=1`,
 - working directory: SSD
 - R SMP cores:  4
+- Single MPI node
 - submatrix chunk size: 1e8  (max nonzero elements)
 
 Data parsing time: 9,970 seconds.
 PCA time:  6,480 seconds (about 2 hours).
 
 
-## Amazon r3.8xlarge (file-based)
+## Amazon r3.8xlarge (file-based, pca-mpi.R)
 
 System configuration was
 
@@ -40,6 +41,7 @@ System configuration was
 - R version 3.3.1
 - OpenBLAS and OMP_NUM_THREADS=1
 - R SMP cores: 16
+- Single MPI node
 - /dev/shm expanded to full RAM size tmpfs mount
 - working directory /dev/shm
 - submatrix chunk size: 1e8  (max nonzero elements)
@@ -48,7 +50,7 @@ Data parsing time: 2,400 seconds.
 PCA time: 521 seconds.
 
 
-## Amazon r4.16xlarge
+## Amazon r4.16xlarge (in memory, pca-smp.R)
 
 System configuration
 
@@ -70,7 +72,7 @@ performance. At some point, I will re-run this test and add a new result below
 with the correct core count.
 
 
-## HP ProLiant DL580 G7
+## HP ProLiant DL580 G7 (in memory, pca-smp.R)
 
 System configuration
 
