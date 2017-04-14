@@ -6,11 +6,18 @@
 #
 # cc -O2 -o parsevcf parse.c
 # sudo mv parsevcf /usr/local/bin
+# (alternatively, don't move the parsevcf program but invoke R with PATH=$(pwd):$PATH)
 #
 # This implementation assumes MPI and that the input *.vcf.gz files are split
 # up among the workers. Each worker will process only the *.vcf.gz files
 # present in its local working directory. It does not assume a shared file
 # system.
+#
+# NOTE: This version uses MPI to coordinate cross-node work in master/slave
+# fashion, but simple forked parallelism within nodes. The number of MPI nodes
+# should be set to the number of nodes + 1 (not generally the number of CPU
+# cores). The extra MPI node (the + 1) is used by Rmpi as the master
+# coordinating process.
 #
 # Input: One or more variant files in *.vcf.gz
 # Optional input:
@@ -48,12 +55,8 @@ if(SKIP_PARSE)
   # this section.
 
   t0 = proc.time()
-  # Establish an approximate chunk size based on 1000 Genomes project estimates
   chunksize = as.numeric(Sys.getenv("CHUNKSIZE"))
-  if(is.na(chunksize))
-  {
-     chunksize = floor(100000000 * as.numeric(system("free -b | sed -n 2p | tr -s ' ' | cut -f 2 -d ' '", intern=TRUE)) / 16e9)
-  }
+  if(is.na(chunksize)) chunksize = 1e7  # adjust as needed to fit your memory constraints
   if(is.na(chunksize)) stop("error setting chunksize")
   message("chunksize: ", chunksize)
 
