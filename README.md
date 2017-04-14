@@ -18,6 +18,11 @@ Additional notes on the PCA examples:
 - Brief overview http://bwlewis.github.io/1000_genomes_examples/PCA_overview.html
 - Notes on the parallel computation http://bwlewis.github.io/1000_genomes_examples/notes.html
 
+And here are some informal performance reults on a few systems:
+
+- https://github.com/bwlewis/1000_genomes_examples/some_results.rmd
+
+
 
 ## Introduction
 
