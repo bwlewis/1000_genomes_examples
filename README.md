@@ -20,7 +20,7 @@ Additional notes on the PCA examples:
 
 And here are some informal performance reults on a few systems:
 
-- https://github.com/bwlewis/1000_genomes_examples/some_results.rmd
+- https://github.com/bwlewis/1000_genomes_examples/blob/master/some_results.rmd
 
 
 
