@@ -65,6 +65,10 @@ System configuration
 Data parsing time: 2,444 seconds.
 PCA time: 839 seconds.
 
+**NOTE** I accidentally used too may cores here, which I think ruined the
+performance. At some point, I will re-run this test and add a new result below
+with the correct core count.
+
 
 ## HP ProLiant DL580 G7
 
