@@ -10,9 +10,13 @@ http://bwlewis.github.io/1000_genomes_examples/ranges.html
 
 ### PCA examples
 
-Across the whole genome: http://bwlewis.github.io/1000_genomes_examples/PCA_whole_genome.html
+- Across the whole genome: http://bwlewis.github.io/1000_genomes_examples/PCA_whole_genome.html
+- Smaller example across just one chromosome: http://bwlewis.github.io/1000_genomes_examples/PCA.html
 
-Smaller example across just one chromosome: http://bwlewis.github.io/1000_genomes_examples/PCA.html
+Additional notes on the PCA examples:
+
+- Brief overview http://bwlewis.github.io/1000_genomes_examples/PCA_overview.html
+- Notes on the parallel computation http://bwlewis.github.io/1000_genomes_examples/notes.html
 
 
 ## Introduction
@@ -64,11 +68,13 @@ www.1000genomes.org/wiki/analysis/variant%20call%20format/vcf-variant-call-forma
 
 Variant data files for each chromosome are available from
 ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502/.
+The file format used is nicely described in this article:
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3137218/pdf/btr330.pdf.
 
 Discounting the header lines, a variant line in the data files consists of some
 information columns about the variant followed by one column for each sample
 (person) that indicates if they exhibit the variant on either or both
-DNA strands. For example, part of a typical line (showing only the first 5
+chromosomes. For example, part of a typical line (showing only the first 5
 columns and 10-15 columns) looks like:
 
 ```
@@ -80,12 +86,13 @@ This variant is on chromosome 20 at position 60343. The reference nucleotide is 
 the variant is A. Note that in some cases, more than one possibility may be listed
 in which case the variants are numbered 1,2,3,...
 Columns 10-15 show that none of the first 6 people in the database
-have this variant on either strand of DNA `0|0`. Someone with the G to A variant
+have this variant on either chromosome `0|0`. Someone with the G to A variant
 on the 2nd strand of DNA will display `0|1`, for example.
 
+The file format is somewhat complex.
 Numerous full-featured VCF file parsers exist for R, see for example 
 the http://bioconductor.org project. But the simple
-analyses considered in this project don't need to read VCF files in full
+exmaple analyses considered in this project don't need to read VCF files in full
 generality, and we can also benefit from the knowledge that the 1000 genomes
 project follows a somewhat restricted VCF subset. I wrote the really simple
 32-line C parser program

@@ -1,0 +1,266 @@
+# Notes on the Variant PCA Examples
+
+The example R programs:
+
+- https://github.com/bwlewis/1000_genomes_examples/blob/master/pca-smp.R
+- https://github.com/bwlewis/1000_genomes_examples/blob/master/pca-mpi.R
+
+compute a principal components decomposition (PCA) of whole genome data for
+2,504 people from the NIH 1000 Genomes Project (http://www.1000genomes.org/).
+This note describes the computational approach used in each program and other
+details.
+
+The first version is designed for large SMP computers such that the whole
+problem can fit in memory, about 130 GB or so. That program uses the native R
+parallel package and Unix fork method for parallel computing.
+
+The second version is designed for distributed computers, and for computers
+with limited memory that might not be able to fit the whole problem in memory.
+It uses the Rmpi package and MPI to coordinate parallel computation between
+computers, and R parallel/fork within each computer.
+
+See https://cran.r-project.org/web/views/HighPerformanceComputing.html for a
+comprehensive overview of parallel/distributed computing techniques for R.
+
+Both programs proceed in two steps:
+
+1. Parse compressed VCF data files downloaded from the 1000 Genomes Project, storing the result as R sparse submatrices.
+2. Compute the PCA decomposition.
+
+The (less interesting) parsing step generally takes longest. The output
+of the parsing step is stored by both the SMP and MPI program versions
+for re-use (by this or other algorithms).
+
+The (more interesting) PCA decomposition step is computed using the IRLBA
+method of Baglama and Reichel (Jim Baglama and Lothar Reichel (2015). irlba:
+Fast Truncated SVD, PCA and Symmetric Eigendecomposition for Large Dense and
+Sparse Matrices.  R package version 2.0.1. Development version at
+https://github.com/bwlewis/irlba).  Some additional details on that method
+appear below.
+
+
+## NIH 1000 Genomes VCF File Format Overview
+
+The input files consist of 22 files obtained by FTP from
+ftp://ftp-trace.ncbi.nih.gov/1000genomes/ftp/release/20130502, one file per
+chromosome (we don't obtain the X, Y or mitochondiral chromosomes).
+
+The examples use "variant call format" (VCF) files following an NCBI variation
+of the VCF 4.1 format available from links shown in the code snippets below.
+Loosely, "variants" are places on the genome that commonly vary from a
+reference genome in a cataloged way. Variants include single-nucleotide
+polymorphisms (a.k.a. SNPs, basically a single base change along the genome)
+and larger "structural" alterations. The 1000 genomes project catalogs about 81
+million variants.
+
+Variant data are stored in files by chromosome. Each file contains a set of
+header lines beginning with the `#` character, followed by one line per
+variant. 
+Full file format details are described in
+www.1000genomes.org/wiki/analysis/variant%20call%20format/vcf-variant-call-format-version-41
+and
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3137218/pdf/btr330.pdf.
+
+Discounting the header lines, a variant line in the data files consists of some
+information columns about the variant followed by one column for each sample
+(person) that indicates if they exhibit the variant on either or both
+chromosomes. For example, part of a typical line (showing only the first 5
+columns and 10-15 columns) looks like:
+
+```
+zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz | sed /^#/d | cut -f "1-5,10-15" | head -n 1
+
+20      60343   .       G       A   ...    0|0     0|0     0|0     0|0     0|0     0|0
+```
+This variant is on chromosome 20 at position 60343. The reference nucleotide is G and
+the variant is A. Note that in some cases, more than one possibility may be listed
+in which case the variants are numbered 1,2,3,...
+Columns 10-15 show that none of the first 6 people in the database
+have this variant on either chromosome `0|0`. Someone with the G to A variant
+on the 2nd strand of DNA will display `0|1`, for example.
+
+The file format is somewhat complex.
+Numerous full-featured VCF file parsers exist for R, see for example 
+the http://bioconductor.org project. But the simple
+example analyses considered in this project don't need to read VCF files in full
+generality, and we can also benefit from the knowledge that the 1000 genomes
+project follows a somewhat restricted VCF subset.
+
+This software repository includes a really simple 32-line C parser program
+https://github.com/bwlewis/1000_genomes_examples/blob/master/parse.c to take
+advantage of these observations and load a subset of VCF data from the 1000
+genomes project into R.
+
+The simple parser program turns VCF files into tab-separated output with four
+or three columns: variant number (just the line offset in file), sample number
+(person), alternate number on first strand or haploid alternate, optional
+alternate number on 2nd strand (diploid). Phasing is ignored.
+For example chromosome 20 again:
+```
+cc parse.c
+zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  | cut  -f "10-" | ./a.out | head
+
+1       898     0       1
+2       1454    0       1
+3       462     0       1
+3       463     1       0
+```
+The output says that person 898 has variant number 1 (the first listed) for
+chromosome 20 present on their 2nd chromosome copy. And person 1454 has variant
+number 2 present on their 2nd chromosome, and so on.
+
+For our purposes in the following examples, this simple C parser quickly
+converts the 1000 genomes VCF data into a variant number by person number
+table. The R part of the parsing step further simplifies thing by ignoring
+which chromosome the variant occurs on--it simply records person and variant
+number.
+
+## Parsing Input Files in the SMP Version
+
+The first 22 chromosomes in the 1000 Genome lists about 9.8 billion total
+variants among all 2,504 subjects, with 81,271,844 unique variant IDs.  The PCA
+analysis treats those data as a sparse matrix with 2,504 rows (people) and
+81,271,844 columns (genomic variants) and about 9.8 billion non-zero entries.
+An entry in row i and column j is one if variant ID j occurs in person i, and
+zero otherwise.
+
+Storing the data as one large sparse matrix is problematic; for instance the
+default version of the Suite Sparse matrix library used by R runs into trouble
+fully supporting matrices with more than 2 billion nonzero elements.  Instead,
+the parsing step partitions the input variant data into submatrices by columns
+so that each submatrix has at most `CHUNKSIZE` nonzero elements, where
+`CHUNKSIZE` is a user-configurable environment variable that defaults to 100
+million. Each submatrix contains all 2,504 rows and a subset of the columns of
+the big sparse matrix.
+
+Splitting the data up in this way has the advantage of helping improve CPU
+utilization in addition to getting around some R limitations. The IRLBA
+algorithm used to compute the PCA uses the splitting to run in parallel.
+
+The SMP version uses R's parallel package extensively in both the parsing
+and analysis step to distributed work across available CPU cores. Specify
+the `OMP_NUM_THREADS` environment variable to control the number of cores
+used by R. If `OMP_NUM_THREADS` is not specified, R will use the total
+number of detected CPU cores.
+
+The SMP parsing step iterates over the input compressed VCF files ending in
+`*.vcf.gz` in parallel using R's native mclapply function, one process
+per input file up to the number of processor cores used.
+
+The output of the parsing step is an R list in the variable `meta` with the
+structure shown below. Each element in the list is the same length. An element
+index corresponds to the associated submatrix.
+
+```
+meta$source_file:  Vector of source VCF files
+meta$file_chunk:   Vector of partition numbers relative to each VCF file
+meta$nrow:         Vector of submatrix rows (all 2,504 in this case)
+meta$ncol:         Vector of number of columns in each submatrix
+meta$start:        Vector of starting column indices of each submatrix
+meta$end:          Vector of ending column indices of each submatrix
+meta$values:       List of sparse submatrices
+```
+
+Because the parsing step can take a long time, the `meta` variable is saved to
+the data file `meta.rdata` for re-use.
+
+Future runs of the pca-smp.R program may skip the parsing step and instead load
+the `meta.rdata` file by setting the environment variable `SKIP_PARSE=TRUE`.
+
+
+
+
+## Parsing Input Files in the MPI Version
+
+The MPI parsing step proceeds similarly to the SMP version with the following
+important differences:
+
+1. It's assumed that the input VCF files are already manually distributed across the computers participating in the MPI run. Each computer only processes the VCF files found locally, in the local R working directory. With four computers, for instance, copy about 5 files to each computer and place the extra two on computers to try to even out the total size of the VCF files on each computer.
+2. Instead of storing the submatrix partitions to an R list in RAM, each partition is stored to a temporary file in the working directory, and the file name is stored in the list. This allows computers with limited memory to process lots of variants, one submatrix at a time.
+
+The output of the parsing step in the MPI version is a list of partitions and
+their associated R data files as follows:
+```
+meta$file:         Vector of partitioned sparse submatrix data file names
+meta$nodename:     Vector of computer host names associated with the data files
+meta$nrow:         Vector of submatrix rows (all 2,504 in this case)
+meta$ncol:         Vector of number of columns in each submatrix
+meta$start:        Vector of starting column indices of each submatrix
+meta$end:          Vector of ending column indices of each submatrix
+```
+
+As the SMP version above, `meta` is saved to a file named `meta.rdata` for
+re-use and the parsing step can be skipped by setting the environment variable
+`SKIP_PARSE=TRUE`.
+
+
+## Computing PCA in the SMP Version
+
+The principal components are computed using the IRLBA method and corresponding
+R package. At its core, the algorithm relies on matrix vector products
+which are computed in chunks over the submatrix partitions in the `meta$values`
+list.  The chunks are computed in parallel using R's native `parallel` package
+managing forked worker processes that share memory with a coordinating master R
+process. Each worker computes a chunk of a matrix vector product with a
+submatrix from `meta$values`.
+
+Additional mathematical details can be found here
+http://bwlewis.github.io/1000_genomes_examples/PCA_whole_genome.html.  The
+IRLBA method is iterative, and requires multiple passes over the data, but can
+be configured to minimize working storage while running to support large
+problems with potentially millions of whole genomes.
+
+
+## Computing PCA in the MPI Version
+
+Similarly to the SMP version, the principal components are computed by IRLBA.
+However, instead of iterating over in-memory submatrices, each submatrix is
+loaded from its data file as needed and then discarded. Parallel computation
+between computers is managed by MPI with one master R process and one worker
+MPI R process per computer. Within each computer, the MPI R process uses the
+same SMP mechanism described above to computer matrix products in parallel. 
+
+With this scheme, if N worker processes per computer are used, then at most
+N submatrix chunks are loaded into memory at one time. The total memory use
+can be easily controlled by sizing the maximum submatrix partition to fit
+N of them (plus some working memory) in memory.
+
+This approach can be configured to use substantially less system RAM than the
+SMP approach described above. Indeed, I have used this approach to compute PCA
+of all the 1000 genomes data on a laptop PC with 16GB RAM. Of course, one
+pays for this with substantial I/O access for the submatrix chunks and the
+algorithm runs generally more slowly than the SMP version.
+
+
+## R as a Parallel API
+
+This example uses an R package called irlba. That package has no special
+provision for parallel or distributed computation. However, all of the
+potentially large computations in that package are simply matrix vector
+products. That simplicity works to our advantage here.
+
+The parallel computing interface in this problem is simply the R language
+itself!  Both versions of the code define a "parallel matrix" object `pmat`
+that is really just the `meta` list described above. To that list, the code
+adds matrix mulitiplication operators that work in parallel over the submatrix
+chunks in the list. The SMP version of the code simply uses R's native parallel
+package, while the MPI version uses the Rmpi package and `foreach` to define
+the operators.
+
+The irlba package goes about its computational business as usual; whenever
+matrix vector products are invoked they are run by our `pmat` operators in
+parallel as required.
+
+In this way, we could easily construct examples using other distributed
+computing interfaces like Spark or Tensorflow, or, for dense problems, pbd
+(https://rbigdata.github.io/) by simply changing the multiplication operators.
+
+Of course this approach works well here because we only use simple matrix
+arithmetic operations. But using R itself as an API for parallel computation is
+an elegant and simple idea. I advocate investigating this approach for
+large-scale problems first, before resorting to more complex and potentially
+less general solutions.
+
+<hr/>
+<div style="float: right;">Bryan W. Lewis, April 2017</div>
+<br/> <br/> <br/> <br/>
