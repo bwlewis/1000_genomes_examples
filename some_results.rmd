@@ -9,7 +9,9 @@ variants for 2,504 whole genomes from the NIH using the code and notes from:
 
 
 Wall-clock times for each of two phases, data parsing and PCA computation, are
-reported below.
+reported below. I collected these results over a long time (over a year), and
+with slightly different versions of the underlying code as I developed it. So
+take these results with a grain of salt please.
 
 
 ## My desktop PC (file-based pca-mpi.R)
