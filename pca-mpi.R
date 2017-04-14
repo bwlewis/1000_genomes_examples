@@ -23,9 +23,12 @@
 # Optional input:
 #   CHUNKSIZE environment variable (number of VCF file rows per chunk)
 #   NCOMP environment variable (number of components, defaults to 3)
+#   NP environment variable number of R worker CPUs to use per MPI host, default parallel::detectCores()
+#   OMP_NUM_THREADS environment variable number of BLAS threads per worker to use, you probably want this to be 1
 # Output: pca.rdata R data file
-# Example invocation
-# CHUNKSIZE=10000000 mpirun -np 4 Rscript --slave pca-mpi.R
+#
+# Example invocation across four computers with 8 cores per computer
+# NP=8 CHUNKSIZE=10000000 mpirun -np 4 -x NP -x CHUNKSIZE Rscript --slave pca-mpi.R
 
 suppressMessages(
 {
@@ -41,6 +44,11 @@ registerDoMPI(cl)
 
 # Set the environment variable SKIP_PARSE=TRUE to skip parsing step.
 SKIP_PARSE = (Sys.getenv("SKIP_PARSE") == "TRUE")
+
+# If your system has hyperthreading/SMT enabled, consider setting NP to the
+# number of physical CPU cores per computer.
+NP = as.integer(Sys.getenv("NP"))
+if(is.na(NP)) NP = detectCores()
 
 
 if(SKIP_PARSE)
@@ -90,7 +98,7 @@ if(SKIP_PARSE)
       close(p)
       meta$nodename = Sys.info()["nodename"]
       meta
-    }, mc.cores=detectCores()))
+    }, mc.cores=NP))
   }
   message("parsing time: ", (proc.time() - t0)[[3]])
   meta$end = cumsum(meta$nrow)
@@ -118,7 +126,7 @@ setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
         close(f)
         r = attr(a, "rowmeans")
         drop(a %*% y - r * drop(crossprod(rep(1, length(y)), y)))
-      }, mc.cores=detectCores())
+      }, mc.cores=NP)
       names(q) = as.character(fidx)
       q
     }
@@ -142,7 +150,7 @@ setMethod("%*%", signature(x="numeric", y="pmat"), function(x ,y)
         close(f)
         j = seq(from=y$start[i], to=y$end[i])
         drop(x[j] %*% a - drop(crossprod(x[j], attr(a, "rowmeans"))))
-      }, mc.cores=detectCores()))
+      }, mc.cores=NP))
     }
   })
 
