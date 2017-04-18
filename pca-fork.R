@@ -62,6 +62,7 @@ if(SKIP_PARSE)
   if(is.na(chunksize)) chunksize = 1e7  # adjust as needed to fit your memory constraints
   if(is.na(chunksize)) stop("error setting chunksize")
   message("chunksize: ", chunksize)
+  clusterExport(cl, "chunksize", environment())
 
   meta = Reduce(rbind, parLapplyLB(cl, dir(pattern="*\\.vcf\\.gz"), function(f)
   {
@@ -123,13 +124,16 @@ setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
     clusterExport(cl, "y", environment())
     p = Reduce(c, clusterEvalQ(cl,
     {
+    if(exists("values"))
+     {
       q = lapply(values, function(a)
       {
         r = attr(a, "rowmeans")
         drop(a %*% y - r * drop(crossprod(rep(1, length(y)), y)))
       })
       names(q) = names(values)
-      q
+     } else q = NULL
+     q
     }))
     ans = rep(0.0, nrow(x))
     for(j in 1:length(p))
@@ -145,6 +149,8 @@ setMethod("%*%", signature(x="numeric", y="pmat"), function(x, y)
     clusterExport(cl, c("x", "y"), environment())
     ans = Reduce(`+`, clusterEvalQ(cl,
     {
+     if(exists("values"))
+     {
       q = Reduce(`+`, lapply(1:length(values), function(k)
       {
         i = as.integer(names(values)[k])
@@ -152,6 +158,7 @@ setMethod("%*%", signature(x="numeric", y="pmat"), function(x, y)
         j = seq(from=y$start[i], to=y$end[i])
         drop(x[j] %*% a - drop(crossprod(x[j], attr(a, "rowmeans"))))
       }))
+     } else q = 0
     }))
   })
 
