@@ -2,6 +2,7 @@
 
 The example R programs:
 
+- https://github.com/bwlewis/1000_genomes_examples/blob/master/pca-fork.R
 - https://github.com/bwlewis/1000_genomes_examples/blob/master/pca-smp.R
 - https://github.com/bwlewis/1000_genomes_examples/blob/master/pca-mpi.R
 
@@ -10,11 +11,11 @@ compute a principal components decomposition (PCA) of whole genome data for
 This note describes the computational approach used in each program and other
 details.
 
-The first version is designed for large SMP computers such that the whole
+The first two versions are designed for large SMP computers such that the whole
 problem can fit in memory, about 130 GB or so. That program uses the native R
 parallel package and Unix fork method for parallel computing.
 
-The second version is designed for distributed computers, and for computers
+The third version is designed for distributed computers, and for computers
 with limited memory that might not be able to fit the whole problem in memory.
 It uses the Rmpi package and MPI to coordinate parallel computation between
 computers, and R parallel/fork within each computer.
@@ -22,7 +23,7 @@ computers, and R parallel/fork within each computer.
 See https://cran.r-project.org/web/views/HighPerformanceComputing.html for a
 comprehensive overview of parallel/distributed computing techniques for R.
 
-Both programs proceed in two steps:
+All programs proceed in two steps:
 
 1. Parse compressed VCF data files downloaded from the 1000 Genomes Project, storing the result as R sparse submatrices.
 2. Compute the PCA decomposition.
@@ -115,7 +116,7 @@ table. The R part of the parsing step further simplifies thing by ignoring
 which chromosome the variant occurs on--it simply records person and variant
 number.
 
-## Parsing Input Files in the SMP Version
+## Parsing Input Files in the SMP/fork Versions
 
 The first 22 chromosomes in the 1000 Genome lists about 9.8 billion total
 variants among all 2,504 subjects, with 81,271,844 unique variant IDs.  The PCA
@@ -161,12 +162,19 @@ meta$end:          Vector of ending column indices of each submatrix
 meta$values:       List of sparse submatrices
 ```
 
+The `pca-fork.R` version of the code does the same thing, but instead of
+`meta$values$`, saves each chunk to a serialized object and stores the names in
+`meta$file`. Subsequent computation loads the objects into worker process
+memory spaces. The `pca-fork.R` version can perform better on many SMP systems
+by loading the sub matrix chunks once up front in each process, pinning them in
+local memory (potentially avoiding NUMA effects).
+
 Because the parsing step can take a long time, the `meta` variable is saved to
-the data file `meta.rdata` for re-use.
+the data file `meta.rdata` for re-use. And, the `pca-fork.R` version stores
+the sub matrix chunks individually to separate files.
 
 Future runs of the pca-smp.R program may skip the parsing step and instead load
 the `meta.rdata` file by setting the environment variable `SKIP_PARSE=TRUE`.
-
 
 
 
@@ -194,7 +202,7 @@ re-use and the parsing step can be skipped by setting the environment variable
 `SKIP_PARSE=TRUE`.
 
 
-## Computing PCA in the SMP Version
+## Computing PCA in the SMP/fork Versions
 
 The principal components are computed using the IRLBA method and corresponding
 R package. At its core, the algorithm relies on matrix vector products
