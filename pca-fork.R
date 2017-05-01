@@ -121,9 +121,11 @@ null = parLapplyLB(cl, 1:nrow(meta), function(j)
 setClass("pmat", contains="list", S3methods=TRUE, slots=c(dims="numeric"))
 setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
   {
-    clusterExport(cl, "y", environment())
+#    clusterExport(cl, "y", environment())
+    saveRDS(y, file="/dev/shm/y.rdata", compress=FALSE)
     p = Reduce(c, clusterEvalQ(cl,
     {
+    y = readRDS("/dev/shm/y.rdata")
     if(exists("values"))
      {
       q = lapply(values, function(a)
@@ -141,14 +143,17 @@ setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
       k = as.integer(names(p)[j])
       ans[x$start[k]:x$end[k]] = p[[j]]
     }
-    gc()
     ans
   })
 setMethod("%*%", signature(x="numeric", y="pmat"), function(x, y)
   {
-    clusterExport(cl, c("x", "y"), environment())
+#    clusterExport(cl, c("x", "y"), environment())
+    saveRDS(y, file="/dev/shm/y.rdata", compress=FALSE)
+    saveRDS(x, file="/dev/shm/x.rdata", compress=FALSE)
     ans = Reduce(`+`, clusterEvalQ(cl,
     {
+     y = readRDS("/dev/shm/y.rdata")
+     x = readRDS("/dev/shm/x.rdata")
      if(exists("values"))
      {
       q = Reduce(`+`, lapply(1:length(values), function(k)
