@@ -116,7 +116,7 @@ setClass("pmat", contains="list", S3methods=TRUE, slots=c(dims="numeric"))
 setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
   {
     ans = rep(0.0, nrow(x))
-    p = foreach(k=1:N, .packages=c("methods", "Matrix", "parallel"), .combine=c) %dopar%
+    p = foreach(k=1:N, .packages=c("methods", "Matrix", "parallel"), .combine=c, .export="NP") %dopar%
     {
       fidx = which(x$nodename == Sys.info()["nodename"])
       q = mclapply(fidx, function(i)
@@ -140,7 +140,7 @@ setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
   })
 setMethod("%*%", signature(x="numeric", y="pmat"), function(x ,y)
   {
-    ans = foreach(k=1:N, .packages=c("methods", "Matrix", "parallel"), .combine="+") %dopar%
+    ans = foreach(k=1:N, .packages=c("methods", "Matrix", "parallel"), .combine="+", .export="NP") %dopar%
     {
       fidx = which(y$nodename == Sys.info()["nodename"])
       q = Reduce(`+`, mclapply(fidx, function(i)
