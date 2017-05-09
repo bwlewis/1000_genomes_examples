@@ -124,7 +124,7 @@ setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
     p = foreach(k=1:N, .packages=c("methods", "Matrix", "parallel"), .combine=c, .export=c("NP", "SHARED")) %dopar%
     {
       fidx = which(x$nodename == Sys.info()["nodename"])
-      if(SHARED) fidx = seq(1, nrow(x))
+      if(SHARED) fidx = seq(1, length(x$nodename))
       q = mclapply(fidx, function(i)
       {
         f = file(x$file[i], open="rb")
@@ -149,7 +149,7 @@ setMethod("%*%", signature(x="numeric", y="pmat"), function(x ,y)
     ans = foreach(k=1:N, .packages=c("methods", "Matrix", "parallel"), .combine="+", .export=c("NP", "SHARED")) %dopar%
     {
       fidx = which(y$nodename == Sys.info()["nodename"])
-      if(SHARED) fidx = seq(1, nrow(x))
+      if(SHARED) fidx = seq(1, length(y$nodename))
       q = Reduce(`+`, mclapply(fidx, function(i)
       {
         f = file(y$file[i], open="rb")
