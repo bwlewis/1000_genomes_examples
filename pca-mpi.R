@@ -45,6 +45,11 @@ registerDoMPI(cl)
 # Set the environment variable SKIP_PARSE=TRUE to skip parsing step.
 SKIP_PARSE = (Sys.getenv("SKIP_PARSE") == "TRUE")
 
+# Set the SHARED=FALSE environment variable to run across non-shared file systems,
+# which assumes that the variant *.vcf.gz files are manually split across the machines.
+# The default is SHARED=TRUE.
+SHARED = !(Sys.getenv("SHARED") == "FALSE")
+
 # If your system has hyperthreading/SMT enabled, consider setting NP to the
 # number of physical CPU cores per computer.
 NP = as.integer(Sys.getenv("NP"))
@@ -116,9 +121,10 @@ setClass("pmat", contains="list", S3methods=TRUE, slots=c(dims="numeric"))
 setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
   {
     ans = rep(0.0, nrow(x))
-    p = foreach(k=1:N, .packages=c("methods", "Matrix", "parallel"), .combine=c, .export="NP") %dopar%
+    p = foreach(k=1:N, .packages=c("methods", "Matrix", "parallel"), .combine=c, .export=c("NP", "SHARED")) %dopar%
     {
       fidx = which(x$nodename == Sys.info()["nodename"])
+      if(SHARED) fidx = seq(1, nrow(x))
       q = mclapply(fidx, function(i)
       {
         f = file(x$file[i], open="rb")
@@ -140,9 +146,10 @@ setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
   })
 setMethod("%*%", signature(x="numeric", y="pmat"), function(x ,y)
   {
-    ans = foreach(k=1:N, .packages=c("methods", "Matrix", "parallel"), .combine="+", .export="NP") %dopar%
+    ans = foreach(k=1:N, .packages=c("methods", "Matrix", "parallel"), .combine="+", .export=c("NP", "SHARED")) %dopar%
     {
       fidx = which(y$nodename == Sys.info()["nodename"])
+      if(SHARED) fidx = seq(1, nrow(x))
       q = Reduce(`+`, mclapply(fidx, function(i)
       {
         f = file(y$file[i], open="rb")
