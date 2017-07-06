@@ -150,7 +150,7 @@ cc -O2 parse.c</code></pre>
 <p>We <em>could</em> use R alone to read and parse the VCF file, it would just take a while longer.</p>
 <p>All the remaining steps in this example run from R. Let’s read the variant data for chromosome 20 into an R sparse matrix. Note that we only care about the variant number and sample (person) number in this exercise and ignore everything else.</p>
 <pre class="r"><code>library(Matrix)
-p = pipe(&quot;zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  | sed /^#/d  | cut  -f '10-' | ./a.out | cut -f '1-2'&quot;)
+p = pipe(&quot;zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz  | sed /^#/d  | cut  -f '10-' | ./a.out | cut -f '1-2'&quot;)
 x = read.table(p, colClasses=c(&quot;integer&quot;,&quot;integer&quot;), fill=TRUE, row.names=NULL)
 
 # Convert to a sparse matrix of people (rows) x variant (columns)
