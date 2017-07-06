@@ -1,13 +1,13 @@
 /*
- * Parse a 1000 genomes vcf file into an output like
- * variant_number\tsample_number
+ * Parse a binary 1000 genomes vcf file into two-column text output like:
+ * variant_number\tsample_number\n
+ * variant_number\tsample_number\n
+ *  ...          \t ...
  * that is, it only shows whether or not a variant occured not what it is.
- * This parser requires a filter to cut out comments and info fields.
+ * NOTE!! This program ignores phasing and assumes specific 1000 genomes vcf format.
  * Example use:
  * cc -O2 parse.c
  * zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  | cut  -f "10-" | ./a.out 
- *
- * NOTE!! This program ignores phasing and assumes specific 1000 genomes vcf format.
  */
 #include <stdio.h>
 #include <stdlib.h>

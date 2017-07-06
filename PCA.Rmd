@@ -49,7 +49,7 @@ the variant number and sample (person) number in this exercise and ignore
 everything else.
 ```{r,eval=FALSE}
 library(Matrix)
-p = pipe("zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5.20130502.genotypes.vcf.gz  | sed /^#/d  | cut  -f '10-' | ./a.out | cut -f '1-2'")
+p = pipe("zcat ALL.chr20.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz  | sed /^#/d  | cut  -f '10-' | ./a.out | cut -f '1-2'")
 x = read.table(p, colClasses=c("integer","integer"), fill=TRUE, row.names=NULL)
 
 # Convert to a sparse matrix of people (rows) x variant (columns)
