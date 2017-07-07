@@ -19,6 +19,11 @@ The example uses:
 - the irlba package to efficiently compute principal components,
 - the threejs package to visualize the result.
 
+
+**NOTE: The example uses commonly available GNU/Linux utilities and shell
+pipelines (a C compiler, zcat, etc.). It will probably run fine on most Unix
+systems (including Macs), but not on most Windows systems.**
+
 All of these steps, from reading the data in to visualization, only take a few
 minutes on a decent laptop, and are expressed in just a few lines of R code.
 
