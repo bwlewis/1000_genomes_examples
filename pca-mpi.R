@@ -8,10 +8,9 @@
 # sudo mv parsevcf /usr/local/bin
 # (alternatively, don't move the parsevcf program but invoke R with PATH=$(pwd):$PATH)
 #
-# This implementation assumes MPI and that the input *.vcf.gz files are split
-# up among the workers. Each worker will process only the *.vcf.gz files
-# present in its local working directory. It does not assume a shared file
-# system.
+# This implementation assumes MPI and that the input *.vcf.gz files exist
+# in the worker home directory in a globally shared file system (SHARED=TRUE),
+# or manually distributed across separate local file systems (SHARED=FALSE).
 #
 # NOTE: This version uses MPI to coordinate cross-node work in master/slave
 # fashion, but simple forked parallelism within nodes. The number of MPI nodes
@@ -22,6 +21,8 @@
 # Input: One or more variant files in *.vcf.gz
 # Optional input:
 #   CHUNKSIZE environment variable (number of VCF file rows per chunk)
+#   SHARED environment variable, defaults to TRUE (shared data file system),
+#          set to FALSE if input files are manually distrubuted across non-shared local file systems.
 #   NCOMP environment variable (number of components, defaults to 3)
 #   NP environment variable number of R worker CPUs to use per MPI host, default parallel::detectCores()
 #   OMP_NUM_THREADS environment variable number of BLAS threads per worker to use, you probably want this to be 1
