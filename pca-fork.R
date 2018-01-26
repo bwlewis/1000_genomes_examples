@@ -4,6 +4,7 @@
 # is compiled and copied to executable parsevcf program in PATH on every node.
 # For instance:
 #
+# wget https://raw.githubusercontent.com/bwlewis/1000_genomes_examples/master/parse.c
 # cc -O2 -o parsevcf parse.c
 # sudo mv parsevcf /usr/local/bin
 # (alternatively, don't move the parsevcf program but invoke R with PATH=$(pwd):$PATH)
@@ -147,7 +148,7 @@ setMethod("%*%", signature(x="pmat", y="numeric"), function(x ,y)
   })
 setMethod("%*%", signature(x="numeric", y="pmat"), function(x, y)
   {
-#    clusterExport(cl, c("x", "y"), environment())
+#    clusterExport(cl, c("x", "y"), environment()) # slower than...
     saveRDS(y, file="/dev/shm/y.rdata", compress=FALSE)
     saveRDS(x, file="/dev/shm/x.rdata", compress=FALSE)
     ans = Reduce(`+`, clusterEvalQ(cl,
