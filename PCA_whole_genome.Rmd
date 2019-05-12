@@ -520,10 +520,10 @@ data by population.
 
 ## Correlation network visualization
 
-Either approach above can compute more than three principal components;
-for instance the covariance matrix approach computes all 2,504 components
-(subject to potential accuracy issues for the components associated with the
-smallest singular values).
+Either IRLBA or the covariance matrix approach can compute more than three
+principal components; for instance the covariance matrix approach computes all
+2,504 components (subject to potential accuracy issues for the components
+associated with the smallest singular values).
 
 A common trick to visualize higher-dimensional data sets is to represent the
 data as a weighted, undirected graph (one vertex for each one of the 2,504
@@ -534,6 +534,9 @@ The plot below shows a density plot of all correlation coefficients between each
 2,504 indivudals's first 10 principal components. We see a large number of essentially
 uncorrelated individuals and a smaller highly group with coefficients above
 about 0.8 or 0.9.
+```{r, eval=TRUE, echo=FALSE}
+s = readRDS("pca.rdata")
+```
 ```{r, eval=TRUE}
 P = cor(t(s$v))
 plot(density(P))
