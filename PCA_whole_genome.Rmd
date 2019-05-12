@@ -201,7 +201,7 @@ like zcat, sed and cut.
 
 ## Download and compile the simple VCF parser
 
-```
+```{bash,eval=FALSE}
 wget https://raw.githubusercontent.com/bwlewis/1000_genomes_examples/master/parse.c
 cc -O2 parse.c
 ```
@@ -216,6 +216,11 @@ lots of network bandwidth (like Amazon). Remove the ampersand at the end of the
 wget line for a sequential download instead.
 
 ```{bash,eval=FALSE}
+# Download the phenotype description file
+dest = "20130606_g1k.ped"
+src = sprintf("ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_info/%s", dest)
+download.file(src, dest=dest)
+
 # Download the variant files
 j=1
 while test $j -lt 23; do
@@ -469,25 +474,81 @@ drop(sqrt(crossprod(L$v[,1] - s$u[,1])))
 #[1] 1.795767e-14
 ```
 
-Make a nice 3d scatterplot of the first three principal component vectors
-with the threejs package:
+
+## Visualizing the results
+
+
+First, obtain a list of individual subject IDs in each chromosome file to match
+with auxiliary phylogenetic data, which we also load. In particular, we'll use the reported
+populations as a kind of cluster validation.
+See http://www.internationalgenome.org/category/population/ for details.
+
+```{r, eval=TRUE}
+f = dir(pattern="*\\.vcf\\.gz")[[1]]
+cmd = sprintf("zcat %s |head -n 500 | grep '^#CHROM' |cut  -f 10-", f)
+p = pipe(cmd)
+ids = scan(p, what=character(), sep="\t")
+
+ped = read.csv("20130606_g1k.ped", sep="\t", header=TRUE, stringsAsFactors=FALSE)
+row.names(ped) = ped[["Individual.ID"]]
+ped = ped[ids, ]
+ped$Population = factor(ped$Population, levels=c("CHB", "JPT", "CHS", "CDX", "KHV", "CEU", "TSI", "FIN", "GBR", "IBS", "YRI", "LWK", "GWD", "MSL", "ESN", "ASW", "ACB", "MXL", "PUR", "CLM", "PEL", "GIH", "PJL", "BEB", "STU", "ITU"))
+levels(ped$Population) = c("Han Chinese in Beijing, China", "Japanese in Tokyo, Japan", "Southern Han Chinese", "Chinese Dai in Xishuangbanna, China", "Kinh in Ho Chi Minh City, Vietnam", "Utah Residents (CEPH) with Northern and Western European Ancestry", "Toscani in Italia", "Finnish in Finland", "British in England and Scotland", "Iberian Population in Spain", "Yoruba in Ibadan, Nigeria", "Luhya in Webuye, Kenya", "Gambian in Western Divisions in the Gambia", "Mende in Sierra Leone", "Esan in Nigeria", "Americans of African Ancestry in SW USA", "African Caribbeans in Barbados", "Mexican Ancestry from Los Angeles USA", "Puerto Ricans from Puerto Rico", "Colombians from Medellin, Colombia", "Peruvians from Lima, Peru", "Gujarati Indian from Houston, Texas", "Punjabi from Lahore, Pakistan", "Bengali from Bangladesh", "Sri Lankan Tamil from the UK", "Indian Telugu from the UK")
+```
+
+## 3D Scatter plot
+
+The first three principal components represent points in 3D space for each
+individual and can be directly visualized as a scatter plot. The scatter
+plot is colored using the above reported populations for each individual.
 
 ```{r, eval=TRUE, echo=FALSE}
 # Assumes that chunked.out (output from the IRLBA method) is in the path.
 load("chunked.out")
+suppressMessages(library(threejs))
 ```
-```{r, eval=TRUE, echo=TRUE}
+```{r, eval=TRUE}
 library(threejs)
-scatterplot3js(L$v, size=0.5, grid=FALSE)
+clrs = rainbow(length(levels(ped$Population)))[ped$Population]
+scatterplot3js(L$v[, 1:3], size=0.2, color=clrs, labels=ped$Population, width=1000)
+```
+You  can interact with the plot by rotating, zooming, etc. Mousing over
+each point shows the associated individual's population. You can see
+that dimensionality reduction by PCA does a good job of clustering these
+data by population.
+
+
+## Correlation network visualization
+
+Either approach above can compute more than three principal components;
+for instance the covariance matrix approach computes all 2,504 components
+(subject to potential accuracy issues for the components associated with the
+smallest singular values).
+
+A common trick to visualize higher-dimensional data sets is to represent the
+data as a weighted, undirected graph (one vertex for each one of the 2,504
+individuals in our case). For example, edges between the vertices can be
+Euclidean distance or Pearson correlation coefficients.
+
+The plot below shows a density plot of all correlation coefficients between each of the
+2,504 indivudals's first 10 principal components. We see a large number of essentially
+uncorrelated individuals and a smaller highly group with coefficients above
+about 0.8 or 0.9.
+```{r, eval=TRUE}
+P = cor(t(s$v))
+plot(density(P))
 ```
 
-Compare these clusters with those obtained from one chromosome (20) here
-http://bwlewis.github.io/1000_genomes_examples/PCA.html:
-```{r,eval=TRUE,echo=FALSE,}
-library(threejs)
-load(url("http://illposed.net/chr20_svd.RData"))
-scatterplot3js(p$u, size=0.5, grid=FALSE)
+The following picture shows an interactive network visualization of the
+thresholded correlation of the 10-d PCA data, cutting off edges with a
+correlation below 0.85. Like the scatter plot, you can interact with the
+visualization. It does a somewhat better job of discriminating between
+populations.
+
+```{r, eval=TRUE}
+P[P < 0.85] = 0  # correlation threshold
+g = graph.adjacency(P, mode="undirected", weighted=TRUE, diag=FALSE)
+g = set_vertex_attr(g, "color", value=clrs)
+graphjs(g, vertex.size=0.2, bg="black", vertex.label=ped$Population, width=1000, height=600)
 ```
-Notice that there
-is finer detail in the whole genome plot. Zooming in on some of the
-clusters shows distinct subclusters.
+
