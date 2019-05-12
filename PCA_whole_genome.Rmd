@@ -7,6 +7,8 @@
 This example illustrates principal components (PCA) decomposition of genomic
 variant data of 2,504 people from the 1000 genomes project[^1].  The example
 projects genome-wide variant data into a three dimensional subspace.
+See https://github.com/bwlewis/1000_genomes_examples for the source files and additional
+notes associated with this and other examples using 1000 Genomes Project data.
 
 Specifically, arrange the variant data into a sparse matrix $A$ whose 2,504 rows
 represent people and columns represent genomic variants. A one in row i, column j of the matrix
@@ -216,11 +218,6 @@ lots of network bandwidth (like Amazon). Remove the ampersand at the end of the
 wget line for a sequential download instead.
 
 ```{bash,eval=FALSE}
-# Download the phenotype description file
-dest = "20130606_g1k.ped"
-src = sprintf("ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/working/20130606_sample_info/%s", dest)
-download.file(src, dest=dest)
-
 # Download the variant files
 j=1
 while test $j -lt 23; do
@@ -456,8 +453,6 @@ instead, but that incurs lots of extra memory allocation and copy overhead
 that's avoided by the less elegant looking (but more efficient) approach used
 above.
 
-# Plot the output
-
 The two methods return nearly the same output (as expected). Here is a comparison
 of the first three singular values returned by the IRLBA method and by the
 cross product method:
@@ -555,3 +550,7 @@ g = set_vertex_attr(g, "color", value=clrs)
 graphjs(g, vertex.size=0.2, bg="black", vertex.label=ped$Population, width=1000, height=600)
 ```
 
+As above, you  can interact with the plot by rotating, zooming, etc. Mousing over
+each vertex shows the associated individual's population. Edges indicate variant correlation
+between vertices exceeding the threshold of 0.85. Vertices are colored according to
+the reported population data file `20130606_g1k.ped`.
