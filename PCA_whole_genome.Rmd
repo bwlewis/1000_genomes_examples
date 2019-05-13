@@ -554,3 +554,7 @@ As above, you  can interact with the plot by rotating, zooming, etc. Mousing ove
 each vertex shows the associated individual's population. Edges indicate variant correlation
 between vertices exceeding the threshold of 0.85. Vertices are colored according to
 the reported population data file `20130606_g1k.ped`.
+This approach is somewhat ad-hoc in that we arbitrarily chose a dimension of 10
+and then a correlation threshold for visualization.
+See our paper http://arxiv.org/abs/1512.07246 for a more systematic approach to
+thresholded correlation.
